@@ -1,0 +1,66 @@
+# Use ROCKET MODULES
+CONFIG_MODULES_ROCKET_COMMANDER=y
+
+# Define that we are on posix platform (nuttx is default)
+CONFIG_PLATFORM_POSIX=y
+
+# Define ROMFSROOT
+CONFIG_BOARD_ROMFSROOT="ctusrfmu_common"
+
+# # For replaying system state from uORB messages
+# CONFIG_MODULES_REPLAY=y
+
+# # Used by REPLAY module, Alsoo used for Position Estimation
+# CONFIG_MODULES_EKF2=y
+
+# # For logging (can use MAVLINK)
+CONFIG_MODULES_LOGGER=y
+
+# # Add mavlink module (needs DATAMAN (uses dataman_client))
+CONFIG_MODULES_MAVLINK=y
+CONFIG_MAVLINK_DIALECT="rocket"
+
+# # Enables ROS2 topics cross computer communication
+# CONFIG_MODULES_UXRCE_DDS_CLIENT=y
+
+# # API for persistent storage (file, flash, fram, ram)
+CONFIG_MODULES_DATAMAN=y
+
+# # CPU Load Monitoring
+# CONFIG_MODULES_LOAD_MON=y
+
+# # Modules and Drivers for Simulation (needs sensors, control_allocator)
+# Module for simulated Battery (for simulated battery state)
+# Driver for simulated PWM outputs (needs control_actuator)
+# And other things...
+# CONFIG_COMMON_SIMULATION=y
+
+# # Module for publishing msg about actuator setpoints
+# CONFIG_MODULES_CONTROL_ALLOCATOR=y
+
+# # Modules for Generic vehicle Sensors (ACC, GYRO, IMU, MAG, OPT)
+# CONFIG_MODULES_SENSORS=y
+
+# # Driver for Tone Alarm Buzzer
+# CONFIG_DRIVERS_TONE_ALARM=y
+
+# # Module for handling RC channel mapping (needs manual_control)
+# CONFIG_MODULES_RC_UPDATE=y
+
+# # Module for setting manual RC setpoints (needs commander)
+# CONFIG_MODULES_MANUAL_CONTROL=y
+
+# # Module for state machine mode switching and failsafe behaviour (needs navigator)
+# CONFIG_MODULES_COMMANDER=y
+
+# # Module for autonomous flight modes (missions, takeoff, RTL)
+# CONFIG_MODULES_NAVIGATOR=y
+
+# # Command for setting parameters (param set $PARAM $VAL)
+CONFIG_SYSTEMCMDS_PARAM=y
+
+# # Command for listing uORB messages
+CONFIG_SYSTEMCMDS_UORB=y
+
+# # Command for listening to uORB topics
+CONFIG_SYSTEMCMDS_TOPIC_LISTENER=y

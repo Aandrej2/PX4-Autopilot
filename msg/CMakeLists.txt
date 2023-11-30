@@ -168,6 +168,7 @@ set(msg_files
 	RcParameterMap.msg
 	RegisterExtComponentReply.msg
 	RegisterExtComponentRequest.msg
+	RocketState.msg
 	Rpm.msg
 	RtlTimeEstimate.msg
 	SatelliteInfo.msg

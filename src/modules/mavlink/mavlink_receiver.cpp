@@ -204,6 +204,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_heartbeat(msg);
 		break;
 
+	case MAVLINK_MSG_ID_HIGHRES_IMU:
+		handle_message_highres_imu(msg);
+		break;
+
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
 		handle_message_distance_sensor(msg);
 		break;
@@ -2595,6 +2599,27 @@ MavlinkReceiver::handle_message_utm_global_position(mavlink_message_t *msg)
 	_transponder_report_pub.publish(t);
 
 	_last_utm_global_pos_com = t.timestamp;
+}
+
+void MavlinkReceiver::handle_message_highres_imu(mavlink_message_t *msg)
+{
+	mavlink_highres_imu_t highres;
+	mavlink_msg_highres_imu_decode(msg, &highres);
+
+	vehicle_imu_s imu;
+	memset(&imu, 0, sizeof(imu));
+
+	imu.timestamp = hrt_absolute_time();
+
+	imu.delta_angle[0] = highres.xgyro;
+	imu.delta_angle[1] = highres.ygyro;
+	imu.delta_angle[2] = highres.zgyro;
+
+	imu.delta_velocity[0] = highres.xacc;
+	imu.delta_velocity[1] = highres.yacc;
+	imu.delta_velocity[2] = highres.zacc;
+
+	_vehicle_imu_pub.publish(imu);
 }
 
 void

@@ -1,0 +1,5 @@
+menuconfig MODULES_ROCKET_COMMANDER
+	bool "rocket_commander"
+	default n
+	---help---
+		Enable support for rocket commander

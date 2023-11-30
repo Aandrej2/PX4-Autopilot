@@ -1,6 +1,16 @@
 CONFIG:
   default: px4_sitl_default
   choices:
+    ctusr_sitl_default:
+      short: ctusr_sitl_default
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: ctusr_sitl_default
+    ctusr_nucleoH745_default:
+      short: ctusr_nucleo-h745_default
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: ctusr_nucleo-h745_default
     px4_sitl_default:
       short: px4_sitl_default
       buildType: RelWithDebInfo
