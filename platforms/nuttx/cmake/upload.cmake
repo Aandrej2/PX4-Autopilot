@@ -43,6 +43,8 @@ if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
 	set(px4_usb_path "${vendorstr_underscore}_${productstr_underscore}")
 
 	list(APPEND serial_ports
+		/dev/ttyACM*
+
 		# NuttX vendor + product string
 		/dev/serial/by-id/*-${px4_usb_path}*
 

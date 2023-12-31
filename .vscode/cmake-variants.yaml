@@ -6,11 +6,11 @@ CONFIG:
       buildType: RelWithDebInfo
       settings:
         CONFIG: ctusr_sitl_default
-    ctusr_nucleoH745_default:
-      short: ctusr_nucleo-h745_default
+    ctusr_nucleo_f439_default:
+      short: ctusr_nucleo-f439_default
       buildType: RelWithDebInfo
       settings:
-        CONFIG: ctusr_nucleo-h745_default
+        CONFIG: ctusr_nucleo-f439_default
     px4_sitl_default:
       short: px4_sitl_default
       buildType: RelWithDebInfo

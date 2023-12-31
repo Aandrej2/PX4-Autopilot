@@ -847,7 +847,7 @@ def main():
             unsuitable_board = False
             for port in portlist:
 
-                # print("Trying %s" % port)
+                print("Trying %s" % port)
 
                 # create an uploader attached to the port
                 try:
