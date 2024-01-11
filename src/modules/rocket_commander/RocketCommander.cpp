@@ -168,7 +168,7 @@ int RocketCommander::custom_command(int argc, char *argv[])
 
 int RocketCommander::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("rocketcommander",
+	_task_id = px4_task_spawn_cmd("rocket_commander",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_DEFAULT + 40,
 				      3250,
@@ -181,10 +181,10 @@ int RocketCommander::task_spawn(int argc, char *argv[])
 	}
 
 	// wait until task is up & running
-	if (wait_until_running() < 0) {
-		_task_id = -1;
-		return -1;
-	}
+	// if (wait_until_running() < 0) {
+	// 	_task_id = -1;
+	// 	return -1;
+	// }
 
 	return 0;
 }
@@ -192,7 +192,7 @@ int RocketCommander::task_spawn(int argc, char *argv[])
 void RocketCommander::run()
 {
 	while (!should_exit()) {
-		perf_begin(_loop_perf);
+		// perf_begin(_loop_perf);
 
 		/** Resolve commands */
 		if (_vehicle_command_sub.updated()) {
@@ -213,16 +213,24 @@ void RocketCommander::run()
 
 
 		//PX4_INFO("Rocket Commander: 1TICK");
-		//px4_usleep(1);
+		usleep(100);
+		int ch = 0;
 
 		/** Update vehicle odometry */
 		if(_vehicle_odometry_sub.updated()) {
 			_vehicle_odometry_sub.update(&_vehicle_odometry);
+			ch = 1;
 		}
 
 		/** Update vehicle imu */
 		if(_vehicle_imu_sub.updated()) {
 			_vehicle_imu_sub.update(&_vehicle_imu);
+			ch = 1;
+		}
+
+		/** Nothing changed */
+		if(!ch) {
+			usleep(900);
 		}
 
 		//PX4_INFO("Rocket Commander Z: %f", (double)_vehicle_odometry.position[2]);
@@ -293,7 +301,7 @@ void RocketCommander::run()
 		_rocket_state.timestamp = hrt_absolute_time();
 		_rocket_state_pub.publish(_rocket_state);
 
-		perf_end(_loop_perf);
+		// perf_end(_loop_perf);
 	}
 }
 
@@ -305,6 +313,10 @@ RocketCommander *RocketCommander::instantiate(int argc, char *argv[])
 		if (argc >= 2 && !strcmp(argv[1], "-h")) {
 			// instance->enable_hil();
 		}
+	}
+
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
 	}
 
 	return instance;

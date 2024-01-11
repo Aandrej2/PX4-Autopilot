@@ -47,6 +47,7 @@ px4_add_romfs_files(
 	# rc.mc_apps
 	# rc.mc_defaults
 	rcS
+	rc.mavlink
 	# rc.sensors
 	# rc.thermal_cal
 	# rc.rover_apps

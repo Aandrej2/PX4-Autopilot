@@ -1,6 +1,6 @@
 #!/bin/sh
 # Un comment and use set +e to ignore and set -e to enable 'exit on error control'
-# set +e
+set +e
 # Un comment the line below to help debug scripts by printing a trace of the script commands
 #set -x
 # PX4FMU startup script.
@@ -20,13 +20,14 @@
 # Do not add intra word spaces
 # it wastes flash
 #
-# set R /
+set R /
+set RC /etc/init.d/
 # set FCONFIG /fs/microsd/etc/config.txt
 # set FEXTRAS /fs/microsd/etc/extras.txt
 # set FRC /fs/microsd/etc/rc.txt
 # set IOFW "/etc/extras/px4_io-v2_default.bin"
-# set LOGGER_ARGS ""
-# set LOGGER_BUF 8
+set LOGGER_ARGS ""
+set LOGGER_BUF 8
 # set PARAM_FILE ""
 # set PARAM_BACKUP_FILE ""
 # set RC_INPUT_ARGS ""
@@ -34,12 +35,12 @@
 # set SDCARD_EXT_PATH /fs/microsd/ext_autostart
 # set SDCARD_FORMAT no
 # set STARTUP_TUNE 1
-# set VEHICLE_TYPE none
+set VEHICLE_TYPE none
 
 # #
 # # Print full system version.
 # #
-# ver all
+ver all
 
 # #
 # # Try to mount the microSD card.
@@ -232,20 +233,20 @@
 # 	#
 # 	tone_alarm start
 
-# 	#
-# 	# Waypoint storage.
-# 	# REBOOTWORK this needs to start in parallel.
-# 	#
-# 	if param compare -s SYS_DM_BACKEND 1
-# 	then
-# 		dataman start -r
-# 	else
-# 		if param compare SYS_DM_BACKEND 0
-# 		then
-# 			# dataman start default
-# 			dataman start
-# 		fi
-# 	fi
+#
+# Waypoint storage.
+# REBOOTWORK this needs to start in parallel.
+#
+# if param compare -s SYS_DM_BACKEND 1
+# then
+# dataman start -r
+# else
+#    if param compare SYS_DM_BACKEND 0
+#    then
+#       # dataman start default
+#       dataman start
+#    fi
+# fi
 
 # 	#
 # 	# Start the socket communication send_event handler.
@@ -563,7 +564,11 @@
 # unset STARTUP_TUNE
 # unset VEHICLE_TYPE
 
+. ${RC}rc.mavlink
+
 #
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running.
 #
-# mavlink boot_complete
+mavlink boot_complete
+
+rocket_commander start

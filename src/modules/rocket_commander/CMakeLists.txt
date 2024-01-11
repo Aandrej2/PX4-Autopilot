@@ -34,9 +34,10 @@ px4_add_module(
 	MODULE modules__rocket_commander
 	MAIN rocket_commander
 	COMPILE_FLAGS
+		-DDEBUG_BUILD   # uncomment for PX4_DEBUG output
+		#-O0             # uncomment when debugging
 	SRCS
 		RocketCommander.cpp
 	MODULE_CONFIG
 		module.yaml
-	DEPENDS
 	)
