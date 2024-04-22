@@ -239,10 +239,10 @@ float Battery::calculateStateOfChargeVoltageBased(const float voltage_v, const f
 void Battery::estimateStateOfCharge()
 {
 	// choose which quantity we're using for final reporting
-	if (_params.capacity > 0.f && _battery_initialized) {
+	if ((_params.capacity > 0.f) && _battery_initialized) {
 		// if battery capacity is known, fuse voltage measurement with used capacity
 		// The lower the voltage the more adjust the estimate with it to avoid deep discharge
-		const float weight_v = 3e-4f * (1 - _state_of_charge_volt_based);
+		const float weight_v = 3e-2f * (1 - _state_of_charge_volt_based);
 		_state_of_charge = (1 - weight_v) * _state_of_charge + weight_v * _state_of_charge_volt_based;
 		// directly apply current capacity slope calculated using current
 		_state_of_charge -= _discharged_mah_loop / _params.capacity;
@@ -311,16 +311,23 @@ float Battery::computeRemainingTime(float current_a)
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
 			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			_vehicle_status_is_fw = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 		}
 	}
+
+	_flight_phase_estimation_sub.update();
 
 	if (!PX4_ISFINITE(_current_average_filter_a.getState()) || _current_average_filter_a.getState() < FLT_EPSILON) {
 		_current_average_filter_a.reset(_params.bat_avrg_current);
 	}
 
 	if (_armed && PX4_ISFINITE(current_a)) {
-		// only update with positive numbers
-		_current_average_filter_a.update(fmaxf(current_a, 0.f));
+		// For FW only update when we are in level flight
+		if (!_vehicle_status_is_fw || ((hrt_absolute_time() - _flight_phase_estimation_sub.get().timestamp) < 2_s
+					       && _flight_phase_estimation_sub.get().flight_phase == flight_phase_estimation_s::FLIGHT_PHASE_LEVEL)) {
+			// only update with positive numbers
+			_current_average_filter_a.update(fmaxf(current_a, 0.f));
+		}
 	}
 
 	// Remaining time estimation only possible with capacity

@@ -62,10 +62,6 @@ VectorNav::VectorNav(const char *port) :
 		v = 0;
 		param_set(param_find("EKF2_EN"), &v);
 
-		// SYS_MC_EST_GROUP 0 (disabled)
-		v = 0;
-		param_set(param_find("SYS_MC_EST_GROUP"), &v);
-
 		// SENS_IMU_MODE (VN handles sensor selection)
 		v = 0;
 		param_set(param_find("SENS_IMU_MODE"), &v);
@@ -354,6 +350,35 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			global_position.timestamp = hrt_absolute_time();
 			_global_position_pub.publish(global_position);
 			perf_count(_global_position_pub_interval_perf);
+		}
+
+		// publish estimator_status (VN_MODE 1 only)
+		if (_param_vn_mode.get() == 1) {
+
+			estimator_status_s estimator_status{};
+			estimator_status.timestamp_sample = time_now_us;
+
+			float test_ratio = 0.f;
+
+			if (mode_aligning) {
+				test_ratio = 0.99f;
+
+			} else if (mode_tracking) {
+				// very good
+				test_ratio = 0.1f;
+			}
+
+			estimator_status.mag_test_ratio = test_ratio;
+			estimator_status.vel_test_ratio = test_ratio;
+			estimator_status.pos_test_ratio = test_ratio;
+			estimator_status.hgt_test_ratio = test_ratio;
+
+			estimator_status.accel_device_id = _px4_accel.get_device_id();
+			estimator_status.gyro_device_id = _px4_gyro.get_device_id();
+
+			estimator_status.timestamp = hrt_absolute_time();
+			_estimator_status_pub.publish(estimator_status);
+
 		}
 	}
 

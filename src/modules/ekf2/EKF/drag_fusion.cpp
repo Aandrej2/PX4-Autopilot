@@ -37,10 +37,11 @@
  */
 
 #include "ekf.h"
-#include <ekf_derivation/generated/compute_drag_x_innov_var_and_k.h>
-#include <ekf_derivation/generated/compute_drag_y_innov_var_and_k.h>
+#include <ekf_derivation/generated/compute_drag_x_innov_var_and_h.h>
+#include <ekf_derivation/generated/compute_drag_y_innov_var_and_h.h>
 
 #include <mathlib/mathlib.h>
+#include <lib/atmosphere/atmosphere.h>
 
 void Ekf::controlDragFusion(const imuSample &imu_delayed)
 {
@@ -67,7 +68,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 	// correct rotor momentum drag for increase in required rotor mass flow with altitude
 	// obtained from momentum disc theory
-	const float mcoef_corrrected = fmaxf(_params.mcoef * sqrtf(rho / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C), 0.f);
+	const float mcoef_corrrected = fmaxf(_params.mcoef * sqrtf(rho / atmosphere::kAirDensitySeaLevelStandardAtmos), 0.f);
 
 	// drag model parameters
 	const bool using_bcoef_x = _params.bcoef_x > 1.0f;
@@ -109,7 +110,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 	bool fused[] {false, false};
 
-	VectorState Kfusion;
+	VectorState H;
 
 	// perform sequential fusion of XY specific forces
 	for (uint8_t axis_index = 0; axis_index < 2; axis_index++) {
@@ -127,16 +128,16 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		_aid_src_drag.innovation_variance[axis_index] = NAN; // reset
 
 		if (axis_index == 0) {
-			sym::ComputeDragXInnovVarAndK(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON,
-						      &_aid_src_drag.innovation_variance[axis_index], &Kfusion);
+			sym::ComputeDragXInnovVarAndH(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON,
+						      &_aid_src_drag.innovation_variance[axis_index], &H);
 
 			if (!using_bcoef_x && !using_mcoef) {
 				continue;
 			}
 
 		} else if (axis_index == 1) {
-			sym::ComputeDragYInnovVarAndK(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON,
-						      &_aid_src_drag.innovation_variance[axis_index], &Kfusion);
+			sym::ComputeDragYInnovVarAndH(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON,
+						      &_aid_src_drag.innovation_variance[axis_index], &H);
 
 			if (!using_bcoef_y && !using_mcoef) {
 				continue;
@@ -156,7 +157,10 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		    && PX4_ISFINITE(_aid_src_drag.innovation_variance[axis_index]) && PX4_ISFINITE(_aid_src_drag.innovation[axis_index])
 		    && (_aid_src_drag.test_ratio[axis_index] < 1.f)
 		   ) {
-			if (measurementUpdate(Kfusion, _aid_src_drag.innovation_variance[axis_index], _aid_src_drag.innovation[axis_index])) {
+
+			VectorState K = P * H / _aid_src_drag.innovation_variance[axis_index];
+
+			if (measurementUpdate(K, H, R_ACC, _aid_src_drag.innovation[axis_index])) {
 				fused[axis_index] = true;
 			}
 		}

@@ -31,6 +31,7 @@
 #
 ############################################################################
 
+set(EKF_LIBS)
 set(EKF_SRCS)
 list(APPEND EKF_SRCS
 	bias_estimator.cpp
@@ -44,7 +45,8 @@ list(APPEND EKF_SRCS
 	height_control.cpp
 	imu_down_sampler.cpp
 	output_predictor.cpp
-	vel_pos_fusion.cpp
+	velocity_fusion.cpp
+	position_fusion.cpp
 	yaw_fusion.cpp
 	zero_innovation_heading_update.cpp
 
@@ -54,6 +56,10 @@ list(APPEND EKF_SRCS
 
 if(CONFIG_EKF2_AIRSPEED)
 	list(APPEND EKF_SRCS airspeed_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_AUX_GLOBAL_POSITION)
+	list(APPEND EKF_SRCS aux_global_position.cpp)
 endif()
 
 if(CONFIG_EKF2_AUXVEL)
@@ -85,8 +91,10 @@ if(CONFIG_EKF2_GNSS)
 		gnss_height_control.cpp
 		gps_checks.cpp
 		gps_control.cpp
-		EKFGSF_yaw.cpp
 	)
+
+	add_subdirectory(yaw_estimator)
+	list(APPEND EKF_LIBS yaw_estimator)
 endif()
 
 if(CONFIG_EKF2_GNSS_YAW)
@@ -102,7 +110,6 @@ if(CONFIG_EKF2_MAGNETOMETER)
 		mag_3d_control.cpp
 		mag_control.cpp
 		mag_fusion.cpp
-		mag_heading_control.cpp
 	)
 endif()
 
@@ -129,11 +136,19 @@ if(CONFIG_EKF2_TERRAIN)
 	list(APPEND EKF_SRCS terrain_estimator.cpp)
 endif()
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_library(ecl_EKF
 	${EKF_SRCS}
 )
 
 add_dependencies(ecl_EKF prebuild_targets)
 target_include_directories(ecl_EKF PUBLIC ${EKF_GENERATED_DERIVATION_INCLUDE_PATH})
-target_link_libraries(ecl_EKF PRIVATE geo world_magnetic_model)
+
+target_link_libraries(ecl_EKF
+	PRIVATE
+		geo
+		world_magnetic_model
+		${EKF_LIBS}
+)
+
 target_compile_options(ecl_EKF PRIVATE -fno-associative-math)

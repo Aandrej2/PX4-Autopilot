@@ -364,7 +364,7 @@
                         },
                         "1": {
                             "name": "manual_control_loss",
-                            "description": "manual control loss"
+                            "description": "Manual control loss"
                         },
                         "2": {
                             "name": "gcs_connection_loss",
@@ -372,15 +372,19 @@
                         },
                         "3": {
                             "name": "low_battery_level",
-                            "description": "low battery level"
+                            "description": "Low battery level"
                         },
                         "4": {
                             "name": "critical_battery_level",
-                            "description": "critical battery level"
+                            "description": "Critical battery level"
                         },
                         "5": {
                             "name": "emergency_battery_level",
-                            "description": "emergency battery level"
+                            "description": "Emergency battery level"
+                        },
+                        "6": {
+                            "name": "low_remaining_flight_time",
+                            "description": "Remaining flight time low"
                         }
                     }
                 },
@@ -398,19 +402,19 @@
                         },
                         "2": {
                             "name": "fallback_posctrl",
-                            "description": "fallback to position control"
+                            "description": "Position mode"
                         },
                         "3": {
                             "name": "fallback_altctrl",
-                            "description": "fallback to altitude control"
+                            "description": "Altitude mode"
                         },
                         "4": {
                             "name": "fallback_stabilized",
-                            "description": "fallback to stabilized"
+                            "description": "Stabilized mode"
                         },
                         "5": {
                             "name": "hold",
-                            "description": "hold"
+                            "description": "Hold"
                         },
                         "6": {
                             "name": "rtl",
@@ -418,11 +422,11 @@
                         },
                         "7": {
                             "name": "land",
-                            "description": "land"
+                            "description": "Land"
                         },
                         "8": {
                             "name": "descend",
-                            "description": "descend"
+                            "description": "Descend"
                         },
                         "9": {
                             "name": "disarm",
@@ -539,6 +543,10 @@
                         "8": {
                             "name": "stab",
                             "description": "Stabilized"
+                        },
+                        "9": {
+                            "name": "position_slow",
+                            "description": "Position Slow"
                         },
                         "10": {
                             "name": "auto_takeoff",
@@ -731,24 +739,6 @@
                         "2": {
                             "name": "reduce_throttle",
                             "description": "Reduce throttle!"
-                        }
-                    }
-                },
-                "geofence_violation_reason_t": {
-                    "type": "uint8_t",
-                    "description": "Reason for geofence violation",
-                    "entries": {
-                        "0": {
-                            "name": "dist_to_home_exceeded",
-                            "description": "maximum distance to home exceeded"
-                        },
-                        "1": {
-                            "name": "max_altitude_exceeded",
-                            "description": "maximum altitude exceeded"
-                        },
-                        "2": {
-                            "name": "fence_violation",
-                            "description": "approaching or outside geofence"
                         }
                     }
                 }
