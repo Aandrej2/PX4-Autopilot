@@ -1,0 +1,44 @@
+#!/bin/sh
+# Un comment and use set +e to ignore and set -e to enable 'exit on error control'
+#set +e
+# Un comment the line below to help debug scripts by printing a trace of the script commands
+set -x
+# PX4FMU startup script.
+#
+# NOTE: environment variable references:
+#    If the dollar sign ('$') is followed by a left bracket ('{') then the
+#    variable name is terminated with the right bracket character ('}').
+#    Otherwise, the variable name goes to the end of the argument.
+#
+#
+# NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
+#
+#------------------------------------------------------------------------------
+
+#
+# Set default paramter values.
+# Do not add intra word spaces
+# it wastes flash
+#
+set R /
+set RC /etc/init.d/
+# set FCONFIG /fs/microsd/etc/config.txt
+# set FEXTRAS /fs/microsd/etc/extras.txt
+# set FRC /fs/microsd/etc/rc.txt
+# set IOFW "/etc/extras/px4_io-v2_default.bin"
+set LOGGER_ARGS ""
+set LOGGER_BUF 8
+# set PARAM_FILE ""
+# set PARAM_BACKUP_FILE ""
+# set RC_INPUT_ARGS ""
+# set SDCARD_AVAILABLE no
+# set SDCARD_EXT_PATH /fs/microsd/ext_autostart
+# set SDCARD_FORMAT no
+# set STARTUP_TUNE 1
+set VEHICLE_TYPE none
+
+# #
+# # Print full system version.
+# #
+ver all
+
