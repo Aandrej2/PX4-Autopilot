@@ -128,6 +128,7 @@ pipeline {
                      "thepeach_k1_default",
                      "thepeach_r1_default",
                      "uvify_core_default",
+                     "ctusr_cimrman-v1_default",
             ],
             image: docker_images.nuttx,
             archive: true

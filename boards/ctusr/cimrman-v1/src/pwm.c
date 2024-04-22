@@ -50,14 +50,6 @@
 #  undef HAVE_PWM
 #endif
 
-#ifndef CONFIG_STM32H7_TIM1
-#  undef HAVE_PWM
-#endif
-
-#ifndef CONFIG_STM32H7_TIM1_PWM
-#  undef HAVE_PWM
-#endif
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -83,10 +75,10 @@ int stm32_pwm_setup(void)
     {
       /* Get an instance of the PWM interface */
 
-      pwm = stm32_pwminitialize(NUCLEOH753ZI_PWMTIMER);
+      pwm = stm32_pwminitialize(NUCLEOH753VI_PWMTIMER);
       if (!pwm)
         {
-          tmrerr("ERROR: Failed to get the STM32 PWM lower half\n");
+          syslog(LOG_ERR, "ERROR: Failed to get the STM32 PWM lower half\n");
           return -ENODEV;
         }
 
@@ -95,7 +87,7 @@ int stm32_pwm_setup(void)
       ret = pwm_register("/dev/pwm0", pwm);
       if (ret < 0)
         {
-          tmrerr("ERROR: pwm_register failed: %d\n", ret);
+          syslog(LOG_ERR, "ERROR: pwm_register failed: %d\n", ret);
           return ret;
         }
 

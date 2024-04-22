@@ -34,12 +34,12 @@
 #include <px4_arch/io_timer_hw_description.h>
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
-	initIOTimer(Timer::Timer1),
+	initIOTimer(Timer::Timer15),
 	//initIOTimer(Timer::Timer4, DMA{DMA::Index1}),
 };
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
-	initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel2}, {GPIO::PortE, GPIO::Pin11}),
+	initIOTimerChannel(io_timers, {Timer::Timer15, Timer::Channel1}, {GPIO::PortE, GPIO::Pin5}),
 	//initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel2}, {GPIO::PortE, GPIO::Pin13}),
 	//initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel2}, {GPIO::PortE, GPIO::Pin11}),
 	//initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel1}, {GPIO::PortE, GPIO::Pin9}),

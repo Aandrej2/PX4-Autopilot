@@ -33,6 +33,7 @@
 if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 	add_library(drivers_board
 		bootloader_main.c
+#		usb.c
 	)
 	target_link_libraries(drivers_board
 		PRIVATE
@@ -45,17 +46,16 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 else()
 	add_library(drivers_board
 		init.c
-#		usb.c
-#		timer_config.cpp
-#		spi.cpp
-#		pwm.c
+		timer_config.cpp
+		spi.cpp
+		pwm.c
 	)
 	add_dependencies(drivers_board arch_board_hw_info)
 
 	target_link_libraries(drivers_board
 		PRIVATE
 			arch_io_pins
-#			arch_spi
+			arch_spi
 			arch_board_hw_info
 			nuttx_arch
 			nuttx_drivers

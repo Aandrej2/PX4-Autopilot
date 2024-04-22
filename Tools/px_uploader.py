@@ -831,6 +831,7 @@ def main():
         while True:
             portlist = []
             patterns = args.port.split(",")
+            patterns += ["/dev/serial/by-id/*_STM32_*"]
             # on unix-like platforms use glob to support wildcard ports. This allows
             # the use of /dev/serial/by-id/usb-3D_Robotics on Linux, which prevents the upload from
             # causing modem hangups etc

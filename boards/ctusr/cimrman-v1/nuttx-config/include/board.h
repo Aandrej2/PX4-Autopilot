@@ -232,13 +232,16 @@
 
 /* PWM Configuration */
 
-// #define GPIO_TIM1_CH2OUT GPIO_TIM1_CH2OUT_2   /* PD5 */
-// #define STM32_PWMTIMER 1
-// #define STM32_PWMCHANNEL 2
+#define GPIO_TIM15_CH1OUT GPIO_TIM15_CH1OUT_2   /* PE5 */
+#define STM32_PWMTIMER 1
+#define STM32_PWMCHANNEL 2
 
 /* UART/USART */
 #define GPIO_USART2_RX GPIO_USART2_RX_1 /* PA3 */
 #define GPIO_USART2_TX GPIO_USART2_TX_1 /* PA2 */
+
+#define GPIO_USART3_RX GPIO_USART3_RX_3 /* PD9 */
+#define GPIO_USART3_TX GPIO_USART3_TX_3 /* PD8 */
 
 // #define GPIO_USART3_TX   GPIO_USART3_TX_3      /* PD8  */
 // #define GPIO_USART3_RX   GPIO_USART3_RX_3      /* PD9  */
@@ -267,15 +270,15 @@
 
 
 /* SPI */
-// #define ADJ_SLEW_RATE(p) (((p) & ~GPIO_SPEED_MASK) | (GPIO_SPEED_2MHz))
+#define ADJ_SLEW_RATE(p) (((p) & ~GPIO_SPEED_MASK) | (GPIO_SPEED_2MHz))
 
 // #define GPIO_SPI1_SCK    ADJ_SLEW_RATE(GPIO_SPI1_SCK_1) /* PA5  */
 // #define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1               /* PA6  */
 // #define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_1               /* PA7  */
 
-// #define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_4) /* PB13 */
-// #define GPIO_SPI2_MISO   GPIO_SPI2_MISO_1               /* PB14 */
-// #define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_1               /* PB15 */
+#define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_4) /* PB13 */
+#define GPIO_SPI2_MISO   GPIO_SPI2_MISO_1               /* PB14 */
+#define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_1               /* PB15 */
 
 // #define GPIO_SPI4_SCK    ADJ_SLEW_RATE(GPIO_SPI4_SCK_2) /* PE2  */
 // #define GPIO_SPI4_MISO   GPIO_SPI4_MISO_2               /* PE5  */

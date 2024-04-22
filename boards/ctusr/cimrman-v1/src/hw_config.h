@@ -63,6 +63,7 @@
 
 #define APP_LOAD_ADDRESS               0x08020000 // From Sector 1
 #define BOOTLOADER_DELAY               5000
+#define BOOT_DELAY_ADDRESS             0x000001a0
 
 #define INTERFACE_USART                1
 #define INTERFACE_USART_CONFIG         "/dev/ttyS0,115200"
@@ -71,8 +72,6 @@
 #define INTERFACE_USB_CONFIG           "/dev/ttyACM0,115200"
 #define USBDEVICESTRING                "PX4 BL FC CIMRMAN V1"
 #define USBPRODUCTID                   0x0259
-
-#define BOOT_DELAY_ADDRESS             0x000001a0
 
 #define BOARD_TYPE                     601
 #define OSC_FREQ                       8

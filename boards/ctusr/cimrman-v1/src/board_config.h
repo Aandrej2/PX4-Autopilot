@@ -53,6 +53,15 @@
  * Definitions
  ****************************************************************************************************/
 
+/* PWM
+ */
+#define DIRECT_PWM_OUTPUT_CHANNELS   1
+#define NUCLEOH753VI_PWMTIMER 15
+
+/* High-resolution timer */
+#define HRT_TIMER               8  /* use timer8 for the HRT */
+#define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
+
 /* This board provides the board_on_reset interface */
 
 #define BOARD_HAS_ON_RESET 1
@@ -60,6 +69,10 @@
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define PX4_GPIO_INIT_LIST {}
+
+#define BOARD_USB_VBUS_SENSE_DISABLED 1
+
+#define BOARD_NUM_IO_TIMERS 1
 
 __BEGIN_DECLS
 
@@ -76,6 +89,18 @@ __BEGIN_DECLS
 /****************************************************************************************************
  * Public Functions
  ****************************************************************************************************/
+
+/****************************************************************************************************
+ * Name: stm32_spiinitialize
+ *
+ * Description:
+ *   Called to configure SPI chip select GPIO pins for the PX4FMU board.
+ *
+ ****************************************************************************************************/
+
+extern void stm32_spiinitialize(void);
+
+extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 

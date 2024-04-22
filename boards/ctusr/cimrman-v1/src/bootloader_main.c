@@ -57,6 +57,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	return 0;
 }
 
+void board_late_initialize(void) {}
+
 extern void sys_tick_handler(void);
 void board_timerhook(void)
 {

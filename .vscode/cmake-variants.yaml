@@ -336,3 +336,8 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: raspberrypi_pico_default
+    ctusr_cimrman-v1_default:
+      short: ctusr_cimrman-v1
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ctusr_cimrman-v1_default

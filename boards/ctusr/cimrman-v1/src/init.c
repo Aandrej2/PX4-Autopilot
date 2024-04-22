@@ -53,26 +53,26 @@
 
 #include <nuttx/config.h>
 #include <nuttx/board.h>
-// #include <nuttx/spi/spi.h>
-// #include <nuttx/sdio.h>
-// #include <nuttx/mmcsd.h>
-// #include <nuttx/analog/adc.h>
-// #include <nuttx/mm/gran.h>
-// #include <nuttx/timers/pwm.h>
+#include <nuttx/spi/spi.h>
+#include <nuttx/sdio.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/analog/adc.h>
+#include <nuttx/mm/gran.h>
+#include <nuttx/timers/pwm.h>
 #include <chip.h>
 #include <stm32_uart.h>
 #include <arch/board/board.h>
 #include "arm_internal.h"
 
-// #include <drivers/drv_hrt.h>
+#include <drivers/drv_hrt.h>
 // #include <drivers/drv_board_led.h>
-// #include <systemlib/px4_macros.h>
-// #include <px4_arch/io_timer.h>
-// #include <px4_platform_common/init.h>
-// #include <px4_platform_common/px4_manifest.h>
-// #include <px4_platform/gpio.h>
-// #include <px4_platform/board_determine_hw_info.h>
-// #include <px4_platform/board_dma_alloc.h>
+#include <systemlib/px4_macros.h>
+#include <px4_arch/io_timer.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform_common/px4_manifest.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform/board_determine_hw_info.h>
+#include <px4_platform/board_dma_alloc.h>
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/module.h>
@@ -91,14 +91,14 @@
  * separate switch, we need to build independent of the
  * CONFIG_ARCH_LEDS configuration switch.
  */
-// __BEGIN_DECLS
+__BEGIN_DECLS
 // extern void led_init(void);
 // extern void led_on(int led);
 // extern void led_off(int led);
-// #ifdef CONFIG_PWM
-// extern int stm32_pwm_setup(void);
-// #endif
-// __END_DECLS
+#ifdef CONFIG_PWM
+extern int stm32_pwm_setup(void);
+#endif
+__END_DECLS
 
 /************************************************************************************
  * Name: board_on_reset
@@ -113,9 +113,9 @@
  ************************************************************************************/
 __EXPORT void board_on_reset(int status)
 {
-	// for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
-	// 	px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
-	// }
+	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
+	}
 
 	if (status >= 0) {
 		up_mdelay(6);
@@ -171,7 +171,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	px4_platform_init();
 
-	// stm32_spiinitialize();
+	stm32_spiinitialize();
 
 	// /* configure the DMA allocator */
 	// if (board_dma_alloc_init() < 0) {
@@ -186,13 +186,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	// 	led_on(BOARD_OVERLOAD_LED);
 	// }
 
-// #ifdef CONFIG_PWM
-// 	/* Initialize PWM and register the PWM device. */
-// 	if (stm32_pwm_setup() < 0)
-// 	{
-// 		syslog(LOG_ERR, "ERROR: stm32_pwm_setup() failed to initialize\n");
-// 	}
-// #endif
+#ifdef CONFIG_PWM
+	/* Initialize PWM and register the PWM device. */
+	if (stm32_pwm_setup() < 0)
+	{
+		syslog(LOG_ERR, "ERROR: stm32_pwm_setup() failed to initialize\n");
+	}
+#endif
 
 	/* Configure the HW based on the manifest */
 	px4_platform_configure();
