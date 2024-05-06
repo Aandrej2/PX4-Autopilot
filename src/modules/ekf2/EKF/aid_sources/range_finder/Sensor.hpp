@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,18 +31,54 @@
  *
  ****************************************************************************/
 
-/*
- * This header defines the events::EventType type.
+/**
+ * @file Sensor.hpp
+ * Abstract class for sensors
+ *
+ * @author Mathieu Bresciani <brescianimathieu@gmail.com>
+ *
  */
 
-#pragma once
+#ifndef EKF_SENSOR_HPP
+#define EKF_SENSOR_HPP
 
-#include <uORB/topics/event.h>
+#include <cstdint>
 
-namespace events
+namespace estimator
 {
-using EventType = event_s;
-} // namespace events
+namespace sensor
+{
 
+class Sensor
+{
+public:
+	virtual ~Sensor() {};
 
+	/*
+	 * run sanity checks on the current data
+	 * this has to be called immediately after
+	 * setting new data
+	 */
+	virtual void runChecks() {};
 
+	/*
+	 * return true if the sensor is healthy
+	 */
+	virtual bool isHealthy() const = 0;
+
+	/*
+	 * return true if the delayed sample is healthy
+	 * and can be fused in the estimator
+	 */
+	virtual bool isDataHealthy() const = 0;
+
+	/*
+	 * return true if the sensor data rate is
+	 * stable and high enough
+	 */
+	virtual bool isRegularlySendingData() const = 0;
+};
+
+} // namespace sensor
+} // namespace estimator
+#endif // !EKF_SENSOR_HPP
