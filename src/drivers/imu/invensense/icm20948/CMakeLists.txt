@@ -43,6 +43,8 @@ px4_add_module(
 		icm20948_main.cpp
 		InvenSense_ICM20948_registers.hpp
 	DEPENDS
+		cdev
+		drivers__device
 		px4_work_queue
 		drivers_accelerometer
 		drivers_gyroscope
@@ -59,5 +61,7 @@ px4_add_module(
 		icm20948_i2c_passthrough_main.cpp
 		InvenSense_ICM20948_registers.hpp
 	DEPENDS
+		cdev
+		drivers__device
 		px4_work_queue
 	)
