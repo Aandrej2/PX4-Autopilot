@@ -104,6 +104,7 @@
 #include "streams/POSITION_TARGET_LOCAL_NED.hpp"
 #include "streams/PROTOCOL_VERSION.hpp"
 #include "streams/RAW_RPM.hpp"
+#include "streams/ROCKET_STATE.hpp"
 #include "streams/RC_CHANNELS.hpp"
 #include "streams/SCALED_IMU.hpp"
 #include "streams/SCALED_IMU2.hpp"
@@ -490,6 +491,9 @@ static const StreamListItem streams_list[] = {
 #if defined(EFI_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamEfiStatus>(),
 #endif // EFI_STATUS_HPP
+#if defined(ROCKET_STATE_HPP)
+	create_stream_list_item<MavlinkStreamRocketState>(),
+#endif // ROCKET_STATE_HPP
 #if defined(GPS_RTCM_DATA_HPP)
 	create_stream_list_item<MavlinkStreamGPSRTCMData>(),
 #endif // GPS_RTCM_DATA_HPP

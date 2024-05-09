@@ -1616,7 +1616,8 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 
 	/* fallthrough */
 	case MAVLINK_MODE_CUSTOM:
-		//stream nothing
+		configure_stream_local("HIGHRES_IMU", 100.0f);
+		configure_stream_local("ROCKET_STATE", 10.0f);
 		break;
 
 	case MAVLINK_MODE_CONFIG: // USB

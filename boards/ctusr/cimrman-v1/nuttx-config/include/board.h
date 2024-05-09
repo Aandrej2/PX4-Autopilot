@@ -219,16 +219,35 @@
 #define BOARD_FLASH_WAITSTATES 2
 
 /* SDMMC definitions ********************************************************/
-/* Init 400kHz, freq = PLL1Q/(2*div)  div =  PLL1Q/(2*freq) */
-// #define STM32_SDMMC_INIT_CLKDIV     (125 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
 
-/* Just set these to 24 MHz for now,
- * PLL1Q/(2*5) = 240 MHz / (2*5) = 24 MHz
+/* Init 480kHz, freq = PLL1Q/(2*div)  div =  PLL1Q/(2*freq) */
+
+#define STM32_SDMMC_INIT_CLKDIV     (300 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
+
+/* 20 MHz Max for now - more reliable on some boards than 25 MHz
+ * 20 MHz = PLL1Q/(2*div), div =  PLL1Q/(2*freq), div = 6 = 240 / 40
  */
-// #define STM32_SDMMC_MMCXFR_CLKDIV   (5 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
-// #define STM32_SDMMC_SDXFR_CLKDIV    (5 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
 
-// #define STM32_SDMMC_CLKCR_EDGE      STM32_SDMMC_CLKCR_NEGEDGE
+#if defined(CONFIG_STM32H7_SDMMC_XDMA) || defined(CONFIG_STM32H7_SDMMC_IDMA)
+
+#define STM32_SDMMC_MMCXFR_CLKDIV   (5 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
+#define STM32_SDMMC_SDXFR_CLKDIV    (5 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
+
+#else
+
+#define STM32_SDMMC_MMCXFR_CLKDIV   (100 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
+#define STM32_SDMMC_SDXFR_CLKDIV    (100 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
+
+#endif
+
+#define STM32_SDMMC_CLKCR_EDGE      STM32_SDMMC_CLKCR_NEGEDGE
+
+#define GPIO_SDMMC1_D0 GPIO_SDMMC1_D0_0 /* PC8 */
+#define GPIO_SDMMC1_D1 GPIO_SDMMC1_D1_0 /* PC9 */
+#define GPIO_SDMMC1_D2 GPIO_SDMMC1_D2_0 /* PC10 */
+#define GPIO_SDMMC1_D3 GPIO_SDMMC1_D3_0 /* PC11 */
+#define GPIO_SDMMC1_CK GPIO_SDMMC1_CK_0 /* PC12 */
+#define GPIO_SDMMC1_CMD GPIO_SDMMC1_CMD_0 /* PD2 */
 
 /* PWM Configuration */
 
@@ -272,9 +291,9 @@
 /* SPI */
 #define ADJ_SLEW_RATE(p) (((p) & ~GPIO_SPEED_MASK) | (GPIO_SPEED_2MHz))
 
-// #define GPIO_SPI1_SCK    ADJ_SLEW_RATE(GPIO_SPI1_SCK_1) /* PA5  */
-// #define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1               /* PA6  */
-// #define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_1               /* PA7  */
+#define GPIO_SPI1_SCK    ADJ_SLEW_RATE(GPIO_SPI1_SCK_1) /* PA5  */
+#define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1               /* PA6  */
+#define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_1               /* PA7  */
 
 #define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_4) /* PB13 */
 #define GPIO_SPI2_MISO   GPIO_SPI2_MISO_1               /* PB14 */
@@ -289,7 +308,7 @@
 // #define GPIO_I2C1_SCL GPIO_I2C1_SCL_2       /* PB8  */
 // #define GPIO_I2C1_SDA GPIO_I2C1_SDA_2       /* PB9  */
 
-// #define GPIO_I2C2_SCL GPIO_I2C2_SCL_1       /* PB10 */
-// #define GPIO_I2C2_SDA GPIO_I2C2_SDA_1       /* PB11 */
+#define GPIO_I2C2_SCL GPIO_I2C2_SCL_1       /* PB10 */
+#define GPIO_I2C2_SDA GPIO_I2C2_SDA_1       /* PB11 */
 
 #endif  /*__NUTTX_CONFIG_CTUSR_CIMRMAN_V1_INCLUDE_BOARD_H  */

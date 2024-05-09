@@ -1,8 +1,8 @@
 #!/bin/sh
 # Un comment and use set +e to ignore and set -e to enable 'exit on error control'
-#set +e
+# set +e
 # Un comment the line below to help debug scripts by printing a trace of the script commands
-set -x
+# set -x
 # PX4FMU startup script.
 #
 # NOTE: environment variable references:
@@ -31,14 +31,137 @@ set LOGGER_BUF 8
 # set PARAM_FILE ""
 # set PARAM_BACKUP_FILE ""
 # set RC_INPUT_ARGS ""
-# set SDCARD_AVAILABLE no
-# set SDCARD_EXT_PATH /fs/microsd/ext_autostart
-# set SDCARD_FORMAT no
+set SDCARD_AVAILABLE no
+set SDCARD_EXT_PATH /fs/microsd/ext_autostart
+set SDCARD_FORMAT no
 # set STARTUP_TUNE 1
 set VEHICLE_TYPE none
+
+#
+# Set IMU Max Data Rate
+#
+param set-default IMU_GYRO_RATEMAX 2000
 
 # #
 # # Print full system version.
 # #
 ver all
 
+
+#
+# Try to mount the microSD card.
+#
+if [ -b "/dev/mmcsd0" ]
+then
+	if mount -t vfat /dev/mmcsd0 /fs/microsd
+	then
+		if [ -f "/fs/microsd/.format" ]
+		then
+			echo "INFO [init] format /dev/mmcsd0 requested (/fs/microsd/.format)"
+			set SDCARD_FORMAT yes
+			rm /fs/microsd/.format
+			umount /fs/microsd
+
+		else
+			set SDCARD_AVAILABLE yes
+		fi
+	fi
+
+	if [ $SDCARD_AVAILABLE = no -o $SDCARD_FORMAT = yes ]
+	then
+		echo "INFO [init] formatting /dev/mmcsd0"
+		set STARTUP_TUNE 15 # tune 15 = SD_ERROR (overridden to SD_INIT if format + mount succeeds)
+
+		if mkfatfs -F 32 /dev/mmcsd0
+		then
+			echo "INFO [init] card formatted"
+
+			if mount -t vfat /dev/mmcsd0 /fs/microsd
+			then
+				set SDCARD_AVAILABLE yes
+				set STARTUP_TUNE 14 # tune 14 = SD_INIT
+			else
+				echo "ERROR [init] card mount failed"
+			fi
+		else
+			echo "ERROR [init] format failed"
+		fi
+	fi
+
+	# if [ $SDCARD_AVAILABLE = yes ]
+	# then
+	# 	if hardfault_log check
+	# 	then
+	# 		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
+	# 		if hardfault_log commit
+	# 		then
+	# 			hardfault_log reset
+	# 		fi
+	# 	fi
+	# fi
+
+	# # Check for an update of the ext_autostart folder, and replace the old one with it
+	# if [ -e /fs/microsd/ext_autostart_new ]
+	# then
+	# 	echo "Updating external autostart files"
+	# 	rm -r $SDCARD_EXT_PATH
+	# 	mv /fs/microsd/ext_autostart_new $SDCARD_EXT_PATH
+	# fi
+
+	# set PARAM_FILE /fs/microsd/params
+	# set PARAM_BACKUP_FILE "/fs/microsd/parameters_backup.bson"
+fi
+
+# #
+# # Start the resource load monitor.
+# #
+# load_mon start
+
+#
+# Start Baro sensor
+#
+ms5611 start -s
+
+#
+# Start IMU sensor
+#
+icm20948 start -s
+
+#
+# Start Sensor processing module
+#
+sensors start
+
+#
+# Start Rocket Commander State Machine
+#
+rocket_commander start
+
+#
+# Load mavlink setup
+#
+. ${RC}rc.mavlink
+
+#
+# Unset all script parameters to free RAM.
+#
+unset R
+# unset FCONFIG
+# unset FEXTRAS
+# unset FRC
+# unset IOFW
+unset LOGGER_ARGS
+unset LOGGER_BUF
+# unset PARAM_FILE
+# unset PARAM_BACKUP_FILE
+# unset RC_INPUT_ARGS
+unset SDCARD_AVAILABLE
+unset SDCARD_EXT_PATH
+unset SDCARD_FORMAT
+# unset STARTUP_TUNE
+unset VEHICLE_TYPE
+
+#
+# Boot is complete, inform MAVLink app(s) that the system is now fully up and running.
+#
+mavlink boot_complete

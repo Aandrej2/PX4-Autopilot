@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * CTUSR CIRMMAN V1 internal definitions
+ * CTUSR CIMRMAN V1 internal definitions
  */
 
 #pragma once
@@ -61,6 +61,25 @@
 /* High-resolution timer */
 #define HRT_TIMER               8  /* use timer8 for the HRT */
 #define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
+
+
+/* SDIO/SDMMC
+*/
+
+#define SDIO_SLOTNO                    0  /* Only one slot */
+#define SDIO_MINOR                     0
+
+/* SD card bringup does not work if performed on the IDLE thread because it
+ * will cause waiting.  Use either:
+ *
+ *  CONFIG_BOARDCTL=y, OR
+ *  CONFIG_BOARD_INITIALIZE=y && CONFIG_BOARD_INITTHREAD=y
+ */
+
+#if defined(CONFIG_BOARD_INITIALIZE) && !defined(CONFIG_BOARDCTL) && \
+   !defined(CONFIG_BOARD_INITTHREAD)
+#  warning SDIO initialization cannot be perfomed on the IDLE thread
+#endif
 
 /* This board provides the board_on_reset interface */
 
@@ -89,6 +108,16 @@ __BEGIN_DECLS
 /****************************************************************************************************
  * Public Functions
  ****************************************************************************************************/
+
+/****************************************************************************
+ * Name: stm32_sdio_initialize
+ *
+ * Description:
+ *   Initialize SDIO-based MMC/SD card support
+ *
+ ****************************************************************************/
+
+int stm32_sdio_initialize(void);
 
 /****************************************************************************************************
  * Name: stm32_spiinitialize

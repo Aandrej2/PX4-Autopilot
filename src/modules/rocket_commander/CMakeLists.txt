@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,49 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
-	add_library(drivers_board
-		bootloader_main.c
-#		usb.c
+px4_add_module(
+	MODULE modules__rocket_commander
+	MAIN rocket_commander
+	COMPILE_FLAGS
+		-DDEBUG_BUILD   # uncomment for PX4_DEBUG output
+		#-O0             # uncomment when debugging
+	SRCS
+		RocketCommander.cpp
+	MODULE_CONFIG
+		module.yaml
 	)
-	target_link_libraries(drivers_board
-		PRIVATE
-			nuttx_arch
-			nuttx_drivers
-			bootloader
-	)
-	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader/common)
-
-else()
-	file(GLOB_RECURSE MSG_FILES "${PROJECT_SOURCE_DIR}/boards/ctusr/utils/message_definitions/*.xml")
-	get_filename_component(MAVLINK_MSGS "${PROJECT_SOURCE_DIR}/src/modules/mavlink/mavlink/message_definitions/v1.0" REALPATH)
-
-	if (EXISTS "${MAVLINK_MSGS}")
-		message(STATUS "CTUSR Generating custom mavlink message files")
-		foreach(MSG_FILE ${MSG_FILES})
-			get_filename_component(MSG_FILE_NAME ${MSG_FILE} NAME)
-			message(STATUS "CTUSR copying ${MSG_FILE_NAME} to ${MAVLINK_MSGS}/${MSG_FILE_NAME}")
-			file(COPY "${MSG_FILE}" DESTINATION "${MAVLINK_MSGS}")
-		endforeach()
-	endif()
-
-	add_library(drivers_board
-		init.c
-		timer_config.cpp
-		spi.cpp
-		i2c.cpp
-		sdio.c
-		pwm.c
-	)
-	add_dependencies(drivers_board arch_board_hw_info)
-
-	target_link_libraries(drivers_board
-		PRIVATE
-			arch_io_pins
-			arch_spi
-			arch_board_hw_info
-			nuttx_arch
-			nuttx_drivers
-			px4_layer
-	)
-endif()
