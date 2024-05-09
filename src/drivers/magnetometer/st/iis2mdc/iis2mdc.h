@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,49 +31,65 @@
  *
  ****************************************************************************/
 
-/**
- * Downsamples IMU data to a lower rate such that EKF predicition can happen less frequent
- * @author Kamil Ritz <ka.ritz@hotmail.com>
- */
-#ifndef EKF_IMU_DOWN_SAMPLER_HPP
-#define EKF_IMU_DOWN_SAMPLER_HPP
+#pragma once
 
-#include <mathlib/mathlib.h>
-#include <matrix/math.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 
-#include "common.h"
+// IIS2MDC Registers
+#define IIS2MDC_ADDR_CFG_REG_A  0x60
+#define IIS2MDC_ADDR_CFG_REG_B  0x61
+#define IIS2MDC_ADDR_CFG_REG_C  0x62
+#define IIS2MDC_ADDR_STATUS_REG 0x67
+#define IIS2MDC_ADDR_OUTX_L_REG 0x68
+#define IIS2MDC_ADDR_WHO_AM_I   0x4F
 
-using namespace estimator;
+// IIS2MDC Definitions
+#define IIS2MDC_WHO_AM_I         0b01000000
+#define IIS2MDC_STATUS_REG_READY 0b00001111
+// CFG_REG_A
+#define COMP_TEMP_EN    (1 << 7)
+#define MD_CONTINUOUS   (0 << 0)
+#define ODR_100         ((1 << 3) | (1 << 2))
+// CFG_REG_B
+#define OFF_CANC        (1 << 1)
+// CFG_REG_C
+#define BDU             (1 << 4)
 
-class ImuDownSampler
+extern device::Device *IIS2MDC_I2C_interface(const I2CSPIDriverConfig &config);
+
+class IIS2MDC : public I2CSPIDriver<IIS2MDC>
 {
 public:
-	explicit ImuDownSampler(int32_t &target_dt_us);
-	~ImuDownSampler() = default;
+	IIS2MDC(device::Device *interface, const I2CSPIDriverConfig &config);
+	virtual ~IIS2MDC();
 
-	bool update(const imuSample &imu_sample_new);
+	struct SensorData {
+		uint8_t xout0;
+		uint8_t xout1;
+		uint8_t yout0;
+		uint8_t yout1;
+		uint8_t zout0;
+		uint8_t zout1;
+		uint8_t tout0;
+		uint8_t tout1;
+	};
 
-	imuSample getDownSampledImuAndTriggerReset()
-	{
-		imuSample imu{_imu_down_sampled};
-		reset();
-		return imu;
-	}
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
+	static void print_usage();
+
+	int init();
+	void print_status() override;
+
+	void RunImpl();
 
 private:
-	void reset();
+	uint8_t read_register_block(SensorData *data);
+	uint8_t read_register(uint8_t reg);
+	void write_register(uint8_t reg, uint8_t value);
 
-	imuSample _imu_down_sampled{};
-	Quatf _delta_angle_accumulated{};
-
-	int _accumulated_samples{0};
-	int _required_samples{1};
-
-	int32_t &_target_dt_us;
-
-	float _target_dt_s{0.010f};
-	float _min_dt_s{0.005f};
-
-	float _delta_ang_dt_avg{0.005f};
+	device::Device *_interface;
+	PX4Magnetometer _px4_mag;
+	perf_counter_t _sample_count;
+	perf_counter_t _comms_errors;
 };
-#endif // !EKF_IMU_DOWN_SAMPLER_HPP
