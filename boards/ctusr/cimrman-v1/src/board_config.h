@@ -53,6 +53,10 @@
  * Definitions
  ****************************************************************************************************/
 
+/* USART2 VBUS
+*/
+#define GPIO_OTGFS_VBUS         /* TX PD9 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN2)
+
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   1

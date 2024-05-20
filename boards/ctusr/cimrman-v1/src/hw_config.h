@@ -62,7 +62,7 @@
 #define USB0_DEV       0x04
 
 #define APP_LOAD_ADDRESS               0x08020000 // From Sector 1
-#define BOOTLOADER_DELAY               5000
+#define BOOTLOADER_DELAY               3000 // 3s
 #define BOOT_DELAY_ADDRESS             0x000001a0
 
 #define INTERFACE_USART                1
@@ -84,6 +84,8 @@
 
 #define SERIAL_BREAK_DETECT_DISABLED   1
 
+#define BOARD_FORCE_BL_PIN		(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTD|GPIO_PIN7)
+#define BOARD_FORCE_BL_STATE		0
 /*
  * Uncommenting this allows to force the bootloader through
  * a PWM output pin. As this can accidentally initialize
