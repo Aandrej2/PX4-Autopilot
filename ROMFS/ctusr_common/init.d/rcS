@@ -24,7 +24,7 @@ set R /
 set RC /etc/init.d/
 # set FCONFIG /fs/microsd/etc/config.txt
 # set FEXTRAS /fs/microsd/etc/extras.txt
-# set FRC /fs/microsd/etc/rc.txt
+set FRC /fs/microsd/etc/rc.txt
 # set IOFW "/etc/extras/px4_io-v2_default.bin"
 set LOGGER_ARGS ""
 set LOGGER_BUF 8
@@ -100,17 +100,14 @@ then
 	# 	fi
 	# fi
 
-	# # Check for an update of the ext_autostart folder, and replace the old one with it
-	# if [ -e /fs/microsd/ext_autostart_new ]
-	# then
-	# 	echo "Updating external autostart files"
-	# 	rm -r $SDCARD_EXT_PATH
-	# 	mv /fs/microsd/ext_autostart_new $SDCARD_EXT_PATH
-	# fi
-
 	# set PARAM_FILE /fs/microsd/params
 	# set PARAM_BACKUP_FILE "/fs/microsd/parameters_backup.bson"
 fi
+
+if [ -f $FRC ]
+then
+	. $FRC
+else
 
 # #
 # # Start the resource load monitor.
@@ -120,22 +117,25 @@ fi
 #
 # Start Baro sensor
 #
-ms5611 start -s
+# ms5611 start -s
 
 #
 # Start IMU sensor
 #
-icm20948 start -s
+# icm20948 start -s
 
 #
 # Start Sensor processing module
 #
-sensors start
+# sensors start
 
 #
 # Start Rocket Commander State Machine
 #
 rocket_commander start
+rocket_commander launch
+
+fi
 
 #
 # Load mavlink setup
@@ -148,7 +148,7 @@ rocket_commander start
 unset R
 # unset FCONFIG
 # unset FEXTRAS
-# unset FRC
+unset FRC
 # unset IOFW
 unset LOGGER_ARGS
 unset LOGGER_BUF
