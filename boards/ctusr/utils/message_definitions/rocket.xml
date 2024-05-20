@@ -5,43 +5,55 @@
   <dialect>0</dialect>
   <enums>
     <enum name="ROCKET_STATE">
-      <entry value="0" name="ROCKET_STATE_CONFIG">
+      <entry value="0" name="ROCKET_STATE_OFF">
         <description>Rocket is in cofiguration mode.</description>
       </entry>
-      <entry value="1" name="ROCKET_STATE_TEST">
-        <description>Rocket is unarmed and in test mode before launch (actuator drivers are disabled).</description>
+      <entry value="1" name="ROCKET_STATE_CONFIG">
+        <description>Rocket is in cofiguration mode.</description>
       </entry>
-      <entry value="2" name="ROCKET_STATE_READY">
+      <entry value="2" name="ROCKET_STATE_ARMED">
         <description>Rocket is armed and ready for launch (actuator drivers are enabled).</description>
       </entry>
-      <entry value="3" name="ROCKET_STATE_COUNTDOWN">
+      <entry value="3" name="ROCKET_STATE_ENGINE_START">
         <description>Rocket is counting down to ignition.</description>
       </entry>
-      <entry value="4" name="ROCKET_STATE_LIFTOFF">
-        <description>Rocket has started ignition.</description>
+      <entry value="4" name="ROCKET_STATE_POWERED_ASCENT">
+        <description>Rocket has started ignition. Rocket is in powered ascent.</description>
       </entry>
-      <entry value="5" name="ROCKET_STATE_POWERED_ASCENT">
-        <description>Rocket is in powered ascent.</description>
-      </entry>
-      <entry value="6" name="ROCKET_STATE_UNPOWERED_ASCENT">
+      <entry value="5" name="ROCKET_STATE_UNPOWERED_ASCENT">
         <description>Rocket is in unpowered ascent.</description>
       </entry>
-      <entry value="7" name="ROCKET_STATE_APOGEE">
-        <description>Rocket is in apogee.</description>
-      </entry>
-      <entry value="8" name="ROCKET_STATE_DESCENT">
+      <entry value="6" name="ROCKET_STATE_DESCENT">
         <description>Rocket is descending.</description>
       </entry>
-      <entry value="9" name="ROCKET_STATE_LANDED">
+      <entry value="7" name="ROCKET_STATE_LANDED">
         <description>Rocket has landed.</description>
+      </entry>
+      <entry value="8" name="ROCKET_STATE_ABORT">
+        <description>Rocket was aborted.</description>
+      </entry>
+    </enum>
+    <enum name="PARACHUTE_STATE">
+      <entry value="0" name="PARACHUTE_STATE_OFF">
+        <description>Parachutes are in cofiguration mode.</description>
+      </entry>
+      <entry value="1" name="PARACHUTE_STATE_ARMED">
+        <description>Parachutes are armed and ready for deployment.</description>
+      </entry>
+      <entry value="2" name="PARACHUTE_STATE_DROGUE">
+        <description>Parachute has launched Drogue.</description>
+      </entry>
+      <entry value="3" name="PARACHUTE_STATE_MAIN">
+        <description>Parachute has launched Main and Drogue.</description>
       </entry>
     </enum>
   </enums>
   <messages>
     <message id="10" name="ROCKET_STATE">
       <description>The rocket state message shows the current rocket state.</description>
-        <field type="uint64_t" name="time_usec" units="us">Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.</field>
+        <field type="uint64_t" name="time_usec" units="us">Timestamp (UNIX Epoch time or time since system boot).</field>
         <field type="uint8_t" name="current_state" enum="ROCKET_STATE">Current rocket state enum.</field>
+        <field type="uint8_t" name="parachute_state" enum="PARACHUTE_STATE">Current parachute state enum.</field>
     </message>
   </messages>
 </mavlink>

@@ -57,7 +57,8 @@ RocketCommander::~RocketCommander()
 int RocketCommander::print_status()
 {
 	hrt_abstime rel_time = (hrt_absolute_time() - _last_status_print_time);
-	PX4_INFO("[%0.f]: STATE: %s(%d)", rel_time*0.001, stringFromState(state), state);
+	PX4_INFO("[%0.f]: STATE: %s(%d)", rel_time*0.001, stringFromRocketState(state), state);
+	PX4_INFO("[%0.f]: PARACHUTES: %s(%d)", rel_time*0.001, stringFromParachutesState(parachutes), parachutes);
 	_last_status_print_time += rel_time;
 	return 0;
 }
@@ -85,6 +86,13 @@ int RocketCommander::print_usage(const char *reason)
 void RocketCommander::reset()
 {
 	state = STATE_CONFIG;
+	parachutes = PAR_STATE_OFF;
+}
+
+void RocketCommander::launch()
+{
+	state = STATE_ENGINE_START;
+	parachutes = PAR_STATE_ARMED;
 }
 
 static bool send_vehicle_command(const uint32_t cmd, const float param1 = NAN, const float param2 = NAN,
@@ -141,6 +149,12 @@ bool RocketCommander::handle_command(const vehicle_command_s &cmd)
 			reset();
 		}
 		break;
+	case vehicle_command_s::VEHICLE_CMD_MISSION_START: {
+			// Set the state machine to await launch
+			answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+			launch();
+		}
+		break;
 	default:
 		/* Warn about unsupported commands, this makes sense because only commands
 		 * to this component ID (or all) are passed by mavlink. */
@@ -160,6 +174,11 @@ int RocketCommander::custom_command(int argc, char *argv[])
 
 	if (!strcmp(argv[0], "reset")) {
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION);
+		return 0;
+	}
+
+	if (!strcmp(argv[0], "launch")) {
+		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_MISSION_START);
 		return 0;
 	}
 
@@ -235,67 +254,89 @@ void RocketCommander::run()
 
 		//PX4_INFO("Rocket Commander Z: %f", (double)_vehicle_odometry.position[2]);
 
-		if(state == STATE_CONFIG) {
-			// Wait for ARMing signal or Testing signal
-			state = STATE_LIFT_OFF;
+		switch(state) {
+
+			case STATE_OFF:
+				// Do nothing
+			break;
+			case STATE_CONFIG:
+				// Await configuration and Arming
+			break;
+			case STATE_ARMED:
+				// Device is armed!
+			break;
+			case STATE_ENGINE_START:
+				// We are Awaiting Engine Ignition and Lift Off
+
+				// Detected Lift Off
+				if(_vehicle_imu.delta_velocity[2] > 1) {
+					state = STATE_POWERED_ASCENT;
+				}
+			break;
+			case STATE_POWERED_ASCENT:
+				// We are ascending, await zero acceleration
+
+				// Detect engine cut-off
+				if(_vehicle_imu.delta_velocity[2] <= 0.1f) {
+					state = STATE_UNPOWERED_ASCENT;
+				}
+			break;
+			case STATE_UNPOWERED_ASCENT:
+				// We are coasting, await apogee
+
+				// Detect apogee
+				if(abs(_vehicle_odometry.velocity[2]) < 2.0f) {
+					state = STATE_DESCENT;
+				}
+			break;
+			case STATE_DESCENT:
+				// We are descending, Handle parachute deployment and Landing detection
+
+				// Deploy Drogue if it is not
+				if(parachutes < PAR_STATE_DROGUE) {
+					parachutes = PAR_STATE_DROGUE;
+				}
+
+				// Deploy Main under 300meters
+				if(_vehicle_odometry.position[2] < 300.0f) {
+					parachutes = PAR_STATE_MAIN;
+				}
+
+				// Detect landing
+				if(_vehicle_odometry.position[2] < 100.0f &&
+				   abs(_vehicle_odometry.velocity[2]) < 0.1f) {
+					state = STATE_LANDED;
+				}
+			break;
+			case STATE_LANDED:
+				// We have landed
+			break;
+			case STATE_ABORT:
+			default:
+				// We are aborting, deploy parachutes and await Landing.
+			break;
+
 		}
 
-		else if(state == STATE_TESTING) {
-			// Wait for ARMing signal
+		switch(parachutes) {
+			case PAR_STATE_OFF:
+				// Await configuration
+			break;
+			case PAR_STATE_ARMED:
+				// Device is Armed!
+			break;
+			case PAR_STATE_DROGUE:
+				// Deploying Drogue
+			break;
+			case PAR_STATE_MAIN:
+				// Deploying Main
+			break;
 		}
 
-		else if(state == STATE_READY) {
-			// Wait for START Countdown signal
-		}
-
-		else if(state == STATE_COUNTDOWN) {
-			// Start Counting
-			// Wait for Countdown finished
-		}
-
-		else if(state == STATE_LIFT_OFF) {
-			// Start motor signal
-
-			// Wait for Lift off detected
-			if(_vehicle_odometry.velocity[2] > 20) {
-				state = STATE_POWERED_ASCENT;
-			}
-		}
-
-		else if(state == STATE_POWERED_ASCENT) {
-			// Wait for unpowered ascent detected
-			if(_vehicle_imu.delta_velocity[2] <= 0.1f) {
-				state = STATE_UNPOWERED_ASCENT;
-			}
-		}
-
-		else if(state == STATE_UNPOWERED_ASCENT) {
-			// Wait for apogee detected
-			if(abs(_vehicle_odometry.velocity[2]) < 2.0f) {
-				state = STATE_APOGEE;
-			}
-		}
-
-		else if(state == STATE_APOGEE) {
-			// Wait for descent detected
-			if(_vehicle_odometry.velocity[2] < -1.0f) {
-				state = STATE_DESCENT;
-			}
-		}
-
-		else if(state == STATE_DESCENT) {
-			// Start recovery procedures
-
-			// Wait for landing detected
-			if(abs(_vehicle_odometry.velocity[2]) < 0.1f) {
-				state = STATE_LANDED;
-			}
-		}
-
-
-		if(state != _rocket_state.state){
+		if(state != _rocket_state.state || parachutes != _rocket_state.parachutes){
 			print_status();
 			_rocket_state.state = state;
+			_rocket_state.parachutes = parachutes;
 		}
 
 		_rocket_state.timestamp = hrt_absolute_time();

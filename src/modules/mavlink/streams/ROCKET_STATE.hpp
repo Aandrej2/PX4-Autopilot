@@ -68,6 +68,7 @@ private:
 
 			_msg_rocket_state.time_usec = _rocket_state.timestamp;
 			_msg_rocket_state.current_state = _rocket_state.state;
+			_msg_rocket_state.parachute_state = _rocket_state.parachutes;
 
 			mavlink_msg_rocket_state_send_struct(_mavlink->get_channel(), &_msg_rocket_state);
 

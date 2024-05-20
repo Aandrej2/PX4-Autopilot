@@ -52,21 +52,34 @@
 
 
 typedef enum {
-	STATE_CONFIG = 0,
-	STATE_TESTING = 1,
-	STATE_READY = 2,
-	STATE_COUNTDOWN = 3,
-	STATE_LIFT_OFF = 4,
-	STATE_POWERED_ASCENT = 5,
-	STATE_UNPOWERED_ASCENT = 6,
-	STATE_APOGEE = 7,
-	STATE_DESCENT = 8,
-	STATE_LANDED = 9,
+	STATE_OFF = 0,
+	STATE_CONFIG = 1,
+	STATE_ARMED = 2,
+	STATE_ENGINE_START = 3,
+	STATE_POWERED_ASCENT = 4,
+	STATE_UNPOWERED_ASCENT = 5,
+	STATE_DESCENT = 6,
+	STATE_LANDED = 7,
+	STATE_ABORT = 8,
 } rocket_state_t;
 
-static inline const char* stringFromState(rocket_state_t s)
+typedef enum {
+	PAR_STATE_OFF = 0,
+	PAR_STATE_ARMED = 1,
+	PAR_STATE_DROGUE = 2,
+	PAR_STATE_MAIN = 3,
+} parachute_state_t;
+
+static inline const char* stringFromRocketState(rocket_state_t s)
 {
-    static const char* strings[] = { "CONFIG", "TESTING", "READY", "COUNTDOWN", "LIFT_OFF", "POWERED_ASCENT", "UNPOWERED_ASCENT", "APOGEE", "DESCENT", "LANDED"  };
+    static const char* strings[] = { "OFF", "CONFIG", "ARMED", "ENIGNE_START", "POWERED_ASCENT", "UNPOWERED_ASCENT", "DESCENT", "LANDED", "ABORT" };
+
+    return strings[s];
+}
+
+static inline const char* stringFromParachutesState(parachute_state_t s)
+{
+    static const char* strings[] = { "OFF", "ARMED", "DROGUE", "MAIN" };
 
     return strings[s];
 }
@@ -100,6 +113,9 @@ private:
 	/** Reset State to CONFIGURATION */
 	void reset();
 
+	/* Manual set state to Launch await */
+	void launch();
+
 
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);
 
@@ -121,6 +137,7 @@ private:
 
 
 	rocket_state_t					state = STATE_CONFIG;
+	parachute_state_t				parachutes = PAR_STATE_OFF;
 	hrt_abstime					_last_status_print_time = hrt_absolute_time();
 
 	rocket_state_s					_rocket_state{};
