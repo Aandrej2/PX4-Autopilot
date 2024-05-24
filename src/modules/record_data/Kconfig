@@ -1,0 +1,5 @@
+menuconfig MODULES_RECORD_DATA
+	bool "record_data"
+	default n
+	---help---
+		Enable support for recording sensor data
