@@ -1,0 +1,5 @@
+menuconfig DRIVERS_SIMPLE_PWM
+	bool "simple_pwm"
+	default n
+	---help---
+		Enable support for simple_pwm
