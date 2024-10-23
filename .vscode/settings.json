@@ -40,7 +40,10 @@
         "files.insertFinalNewline": true,
         "files.trimTrailingWhitespace": true,
         "files.watcherExclude": {
-                "**/build/**": true
+                "**/build/**": true,
+                "**/.git/objects/**": true,
+                "**/.git/subtree-cache/**": true,
+                "**/node_modules/*/**": true
         },
         "git.detectSubmodulesLimit": 20,
         "git.ignoreLimitWarning": true,
@@ -128,5 +131,8 @@
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
         },
-        "ros.distro": "humble"
+        "ros.distro": "humble",
+        "[cpp]": {
+                "editor.defaultFormatter": "ms-vscode.cpptools"
+        }
 }

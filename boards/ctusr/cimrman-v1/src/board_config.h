@@ -135,6 +135,8 @@ extern void stm32_spiinitialize(void);
 
 extern void stm32_usbinitialize(void);
 
+extern struct can_dev_s *stm32_fdcaninitialize(int port);
+
 extern void board_peripheral_reset(int ms);
 
 #include <px4_platform_common/board_common.h>

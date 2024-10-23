@@ -50,6 +50,7 @@
 
 #include "stm32_rcc.h"
 #include "stm32_sdmmc.h"
+#include "stm32_fdcan.h"
 
 /* Clocking *************************************************************************/
 /* The board provides the following clock sources:
@@ -118,20 +119,20 @@
 
 /* PLL2, wide 4 - 8 MHz input, enable DIVP, DIVQ, DIVR
  *
- *   PLL1_VCO = (8 MHz / 2) * 48 = 96 MHz
+ *   PLL1_VCO = (8 MHz / 2) * 49 = 196 MHz
  *
- *   PLL2P = PLL2_VCO/2  = 96 MHz / 2   = 48 MHz
- *   PLL2Q = PLL2_VCO/4  = 96 MHz / 2   = 48 MHz
- *   PLL2R = PLL2_VCO/8  = 96 MHz / 2   = 48 MHz
+ *   PLL2P = PLL2_VCO/2  = 196 MHz / 2   = 98 MHz
+ *   PLL2Q = PLL2_VCO/2  = 196 MHz / 2   = 98 MHz
+ *   PLL2R = PLL2_VCO/2  = 196 MHz / 2   = 98 MHz
  */
 #define STM32_PLLCFG_PLL2CFG     (RCC_PLLCFGR_PLL2VCOSEL_WIDE|RCC_PLLCFGR_PLL2RGE_4_8_MHZ|RCC_PLLCFGR_DIVP2EN|RCC_PLLCFGR_DIVQ2EN|RCC_PLLCFGR_DIVR2EN)
 #define STM32_PLLCFG_PLL2M       RCC_PLLCKSELR_DIVM2(2)
-#define STM32_PLLCFG_PLL2N       RCC_PLL2DIVR_N2(48)
+#define STM32_PLLCFG_PLL2N       RCC_PLL2DIVR_N2(49)
 #define STM32_PLLCFG_PLL2P       RCC_PLL2DIVR_P2(2)
 #define STM32_PLLCFG_PLL2Q       RCC_PLL2DIVR_Q2(2)
 #define STM32_PLLCFG_PLL2R       RCC_PLL2DIVR_R2(2)
 
-#define STM32_VCO2_FREQUENCY     ((STM32_HSE_FREQUENCY / 2) * 48)
+#define STM32_VCO2_FREQUENCY     ((STM32_HSE_FREQUENCY / 2) * 49)
 #define STM32_PLL2P_FREQUENCY    (STM32_VCO2_FREQUENCY / 2)
 #define STM32_PLL2Q_FREQUENCY    (STM32_VCO2_FREQUENCY / 2)
 #define STM32_PLL2R_FREQUENCY    (STM32_VCO2_FREQUENCY / 2)
@@ -280,9 +281,11 @@
 // #define GPIO_UART8_RX    GPIO_UART8_RX_1       /* PE0 */
 
 
-/* CAN */
-// #define GPIO_CAN1_RX     GPIO_CAN1_RX_3        /* PD0  */
-// #define GPIO_CAN1_TX     GPIO_CAN1_TX_3        /* PD1  */
+/* FD CAN */
+#define GPIO_FDCAN1_RX     GPIO_CAN1_RX_1        /* PA11  */
+#define GPIO_FDCAN1_TX     GPIO_CAN1_TX_1        /* PA12  */
+
+#define STM32_FDCAN_FREQUENCY    STM32_PLL2Q_FREQUENCY  /* 98MHz */
 
 // #define GPIO_CAN2_RX     GPIO_CAN2_RX_1        /* PB12 */
 // #define GPIO_CAN2_TX     GPIO_CAN2_TX_2        /* PB6  */

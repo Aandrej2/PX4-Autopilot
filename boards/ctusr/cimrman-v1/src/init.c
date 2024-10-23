@@ -57,6 +57,7 @@
 #include <nuttx/spi/spi.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
+#include <nuttx/can/can.h>
 #include <nuttx/analog/adc.h>
 #include <nuttx/mm/gran.h>
 #include <nuttx/timers/pwm.h>
@@ -98,6 +99,10 @@ __BEGIN_DECLS
 // extern void led_off(int led);
 #ifdef CONFIG_PWM
 extern int stm32_pwm_setup(void);
+#endif
+
+#ifdef CONFIG_CAN
+extern int stm32_can_setup(void);
 #endif
 __END_DECLS
 
@@ -202,6 +207,16 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	{
 		syslog(LOG_ERR, "ERROR: stm32_pwm_setup() failed to initialize\n");
 	}
+#endif
+
+#ifdef CONFIG_CAN
+
+	/* Initialize CAN and register the CAN device. */
+	if(stm32_can_setup() < 0)
+	{
+		syslog(LOG_ERR, "ERROR: stm32_can_setup() failed to initialize\n");
+	}
+
 #endif
 
 	/* Configure the HW based on the manifest */

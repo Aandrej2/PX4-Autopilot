@@ -11,7 +11,7 @@ param set-default MAV_PROTO_VER 2
 # udp_onboard_payload_port_remote=$((14030+px4_instance))
 # udp_onboard_gimbal_port_local=$((13030+px4_instance))
 # udp_onboard_gimbal_port_remote=$((13280+px4_instance))
-set udp_serial_device_local /dev/ttyS1
+set udp_serial_device_local /dev/ttyS0
 
 # GCS link
 mavlink start -d ${udp_serial_device_local} -m custom
