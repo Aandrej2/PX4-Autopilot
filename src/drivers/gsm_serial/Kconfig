@@ -1,0 +1,5 @@
+menuconfig DRIVERS_GSM_SERIAL
+	bool "gsm_serial"
+	default n
+	---help---
+		Enable support for serial GSM driver

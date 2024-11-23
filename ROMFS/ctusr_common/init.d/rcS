@@ -51,63 +51,63 @@ ver all
 #
 # Try to mount the microSD card.
 #
-if [ -b "/dev/mmcsd0" ]
-then
-	if mount -t vfat /dev/mmcsd0 /fs/microsd
-	then
-		if [ -f "/fs/microsd/.format" ]
-		then
-			echo "INFO [init] format /dev/mmcsd0 requested (/fs/microsd/.format)"
-			set SDCARD_FORMAT yes
-			rm /fs/microsd/.format
-			umount /fs/microsd
+# if [ -b "/dev/mmcsd0" ]
+# then
+# 	if mount -t vfat /dev/mmcsd0 /fs/microsd
+# 	then
+# 		if [ -f "/fs/microsd/.format" ]
+# 		then
+# 			echo "INFO [init] format /dev/mmcsd0 requested (/fs/microsd/.format)"
+# 			set SDCARD_FORMAT yes
+# 			rm /fs/microsd/.format
+# 			umount /fs/microsd
 
-		else
-			set SDCARD_AVAILABLE yes
-		fi
-	fi
+# 		else
+# 			set SDCARD_AVAILABLE yes
+# 		fi
+# 	fi
 
-	if [ $SDCARD_AVAILABLE = no -o $SDCARD_FORMAT = yes ]
-	then
-		echo "INFO [init] formatting /dev/mmcsd0"
-		set STARTUP_TUNE 15 # tune 15 = SD_ERROR (overridden to SD_INIT if format + mount succeeds)
+# 	if [ $SDCARD_AVAILABLE = no -o $SDCARD_FORMAT = yes ]
+# 	then
+# 		echo "INFO [init] formatting /dev/mmcsd0"
+# 		set STARTUP_TUNE 15 # tune 15 = SD_ERROR (overridden to SD_INIT if format + mount succeeds)
 
-		if mkfatfs -F 32 /dev/mmcsd0
-		then
-			echo "INFO [init] card formatted"
+# 		if mkfatfs -F 32 /dev/mmcsd0
+# 		then
+# 			echo "INFO [init] card formatted"
 
-			if mount -t vfat /dev/mmcsd0 /fs/microsd
-			then
-				set SDCARD_AVAILABLE yes
-				set STARTUP_TUNE 14 # tune 14 = SD_INIT
-			else
-				echo "ERROR [init] card mount failed"
-			fi
-		else
-			echo "ERROR [init] format failed"
-		fi
-	fi
+# 			if mount -t vfat /dev/mmcsd0 /fs/microsd
+# 			then
+# 				set SDCARD_AVAILABLE yes
+# 				set STARTUP_TUNE 14 # tune 14 = SD_INIT
+# 			else
+# 				echo "ERROR [init] card mount failed"
+# 			fi
+# 		else
+# 			echo "ERROR [init] format failed"
+# 		fi
+# 	fi
 
-	# if [ $SDCARD_AVAILABLE = yes ]
-	# then
-	# 	if hardfault_log check
-	# 	then
-	# 		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
-	# 		if hardfault_log commit
-	# 		then
-	# 			hardfault_log reset
-	# 		fi
-	# 	fi
-	# fi
+# 	# if [ $SDCARD_AVAILABLE = yes ]
+# 	# then
+# 	# 	if hardfault_log check
+# 	# 	then
+# 	# 		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
+# 	# 		if hardfault_log commit
+# 	# 		then
+# 	# 			hardfault_log reset
+# 	# 		fi
+# 	# 	fi
+# 	# fi
 
-	# set PARAM_FILE /fs/microsd/params
-	# set PARAM_BACKUP_FILE "/fs/microsd/parameters_backup.bson"
-fi
+# 	# set PARAM_FILE /fs/microsd/params
+# 	# set PARAM_BACKUP_FILE "/fs/microsd/parameters_backup.bson"
+# fi
 
-if [ -f $FRC ]
-then
-	. $FRC
-else
+# if [ -f $FRC ]
+# then
+# 	. $FRC
+# else
 
 # #
 # # Start the resource load monitor.
@@ -132,15 +132,15 @@ else
 #
 # Start Rocket Commander State Machine
 #
-rocket_commander start
-rocket_commander launch
+# rocket_commander start
+# rocket_commander launch
 
-fi
+# fi
 
 #
 # Load mavlink setup
 #
-. ${RC}rc.mavlink
+# . ${RC}rc.mavlink
 
 #
 # Unset all script parameters to free RAM.
@@ -164,4 +164,4 @@ unset VEHICLE_TYPE
 #
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running.
 #
-mavlink boot_complete
+# mavlink boot_complete
