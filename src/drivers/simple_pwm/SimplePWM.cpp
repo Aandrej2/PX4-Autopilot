@@ -31,166 +31,97 @@
  *
  ****************************************************************************/
 
+
+#include <stdio.h>
+#include <fcntl.h>
+#include <syslog.h>
+
 #include "SimplePWM.hpp"
 
-#include <px4_platform_common/sem.hpp>
-
 SimplePWM::SimplePWM() :
-	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
-	_pwm_mask = ((1u << DIRECT_PWM_OUTPUT_CHANNELS) - 1);
-	_mixing_output.setMaxNumOutputs(DIRECT_PWM_OUTPUT_CHANNELS);
-
-	// Getting initial parameter values
-	update_params();
+	_pwm_initialized = false;
 }
 
 SimplePWM::~SimplePWM()
 {
-	/* make sure servos are off */
-	up_pwm_servo_deinit(_pwm_mask);
+	/* make sure PWM is off */
+	if(_pwm_driver_fs > 0){
+		int cmd = PWMIOC_STOP;
+		PX4_INFO("Stopping PWM\n");
+		int res = ioctl(_pwm_driver_fs, cmd, 0);
+		PX4_INFO("Result: %d\n", res);
 
-	perf_free(_cycle_perf);
-	perf_free(_interval_perf);
-}
-
-bool SimplePWM::update_pwm_out_state(bool on)
-{
-	if (on && !_pwm_initialized && _pwm_mask != 0) {
-
-		for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
-			_timer_rates[timer] = -1;
-
-			uint32_t channels = io_timer_get_group(timer);
-
-			if (channels == 0) {
-				continue;
-			}
-
-			char param_name[17];
-			snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
-
-			int32_t tim_config = 0;
-			param_t handle = param_find(param_name);
-			param_get(handle, &tim_config);
-
-			if (tim_config > 0) {
-				_timer_rates[timer] = tim_config;
-
-			} else if (tim_config == -1) { // OneShot
-				_timer_rates[timer] = 0;
-
-			} else {
-				_pwm_mask &= ~channels; // don't use for pwm
-			}
-		}
-
-		int ret = up_pwm_servo_init(_pwm_mask);
-
-		if (ret < 0) {
-			PX4_ERR("up_pwm_servo_init failed (%i)", ret);
-			return false;
-		}
-
-		_pwm_mask = ret;
-
-		// set the timer rates
-		for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
-			uint32_t channels = _pwm_mask & up_pwm_servo_get_rate_group(timer);
-
-			if (channels == 0) {
-				continue;
-			}
-
-			ret = up_pwm_servo_set_rate_group_update(timer, _timer_rates[timer]);
-
-			if (ret != 0) {
-				PX4_ERR("up_pwm_servo_set_rate_group_update failed for timer %i, rate %i (%i)", timer, _timer_rates[timer], ret);
-				_timer_rates[timer] = -1;
-				_pwm_mask &= ~channels;
-			}
-		}
-
-		_pwm_initialized = true;
-
-		// disable unused functions
-		for (unsigned i = 0; i < _num_outputs; ++i) {
-			if (((1 << i) & _pwm_mask) == 0) {
-				_mixing_output.disableFunction(i);
-			}
-		}
+		close(_pwm_driver_fs);
+		_pwm_initialized = false;
 	}
-
-	up_pwm_servo_arm(on, _pwm_mask);
-	return true;
-}
-
-bool SimplePWM::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated)
-{
-	/* output to the servos */
-	if (_pwm_initialized) {
-		for (size_t i = 0; i < num_outputs; i++) {
-			if (!_mixing_output.isFunctionSet(i)) {
-				// do not run any signal on disabled channels
-				outputs[i] = 0;
-			}
-
-			if (_pwm_mask & (1 << i)) {
-				up_pwm_servo_set(i, outputs[i]);
-			}
-		}
-	}
-
-	/* Trigger all timer's channels in Oneshot mode to fire
-	 * the oneshots with updated values.
-	 */
-	if (num_control_groups_updated > 0) {
-		up_pwm_update(_pwm_mask);
-	}
-
-	return true;
 }
 
 void SimplePWM::Run()
 {
-	if (should_exit()) {
+	if (should_exit() || _pwm_device == 0) {
 		ScheduleClear();
-		_mixing_output.unregister();
-
 		exit_and_cleanup();
 		return;
 	}
 
-	perf_begin(_cycle_perf);
-	perf_count(_interval_perf);
-
-	_mixing_output.update();
-
-	/* update PWM status if armed or if disarmed PWM values are set */
-	bool pwm_on = true;
-
-	if (_pwm_on != pwm_on) {
-		if (update_pwm_out_state(pwm_on)) {
-			_pwm_on = pwm_on;
+	if(!_pwm_initialized) {
+		_pwm_driver_fs = open(_pwm_device, O_RDONLY);
+		PX4_INFO_RAW("Open: %d\n",_pwm_driver_fs);
+		if(_pwm_driver_fs <= 0) {
+			PX4_ERR("Failed to open device(%s)!\n", _pwm_device);
+			_pwm_device = 0;
+		} else {
+			close(_pwm_driver_fs);
+			_pwm_driver_fs = 0;
+			fflush(stdout);
+			_pwm_initialized = true;
 		}
 	}
 
-	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
+	if(_pwm_initialized) {
 
-		// update parameters from storage
-		update_params();
+		if(_pwm_sub.updated()) {
+			simple_pwm_s settings;
+
+			if(_pwm_sub.copy(&settings)) {
+				_pwm_enabled = settings.enabled;
+				_pwm_frequency = settings.frequency;
+				_pwm_duty_cycle = settings.duty_cycle;
+			}
+		}
+
+		if(_pwm_enabled && _pwm_frequency > 0) {
+			_pwm_driver_fs = open(_pwm_device, O_RDONLY);
+
+			int cmd = PWMIOC_SETCHARACTERISTICS;
+			struct pwm_info_s info;
+			info.frequency = _pwm_frequency;
+			info.duty = b16divi(uitoub16(_pwm_duty_cycle), 100);
+			ioctl(_pwm_driver_fs, cmd, (unsigned long)((uintptr_t)&info));
+
+			cmd = PWMIOC_START;
+			ioctl(_pwm_driver_fs, cmd, 0);
+		}
+
+		useconds_t timeout = _current_update_interval;
+		if(_pwm_frequency > 0) {
+			timeout = math::max(_current_update_interval, (unsigned int)(1000000 / _pwm_frequency));
+		}
+		usleep(timeout);
+
+		if(_pwm_driver_fs > 0) {
+			int cmd = PWMIOC_STOP;
+			ioctl(_pwm_driver_fs, cmd, 0);
+
+			close(_pwm_driver_fs);
+			_pwm_driver_fs = 0;
+			fflush(stdout);
+		}
 	}
 
-	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
-	_mixing_output.updateSubscriptions(true);
-
-	perf_end(_cycle_perf);
-	_first_update_cycle = false;
+	ScheduleNow();
 }
 
 int SimplePWM::task_spawn(int argc, char *argv[])
@@ -202,107 +133,59 @@ int SimplePWM::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
-	_object.store(instance);
+	if(argc == 2) {
+		instance->_pwm_device = argv[1];
+	}
 	_task_id = task_id_is_work_queue;
+	_object.store(instance);
 	instance->ScheduleNow();
+
 	return 0;
-}
-
-void SimplePWM::update_params()
-{
-	uint32_t previously_set_functions = 0;
-
-	for (size_t i = 0; i < _num_outputs; i++) {
-		previously_set_functions |= (uint32_t)_mixing_output.isFunctionSet(i) << i;
-	}
-
-	updateParams();
-
-	// Automatically set PWM configuration when a channel is first assigned
-	if (!_first_update_cycle) {
-		for (size_t i = 0; i < _num_outputs; i++) {
-			if ((previously_set_functions & (1u << i)) == 0 && _mixing_output.functionParamHandle(i) != PARAM_INVALID) {
-				int32_t output_function;
-
-				if (param_get(_mixing_output.functionParamHandle(i), &output_function) == 0) {
-					// Servos need PWM rate 50Hz and disramed value 1500us
-					if (output_function >= (int)OutputFunction::Servo1
-					    && output_function <= (int)OutputFunction::ServoMax) { // Function got set to a servo
-						int32_t val = 1500;
-						PX4_INFO("Setting channel %i disarmed to %i", i + 1, (int)val);
-						param_set(_mixing_output.disarmedParamHandle(i), &val);
-
-						// If the whole timer group was not set previously, then set the pwm rate to 50 Hz
-						for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
-
-							uint32_t channels = io_timer_get_group(timer);
-
-							if ((channels & (1u << i)) == 0) {
-								continue;
-							}
-
-							if ((channels & previously_set_functions) == 0) { // None of the channels was set
-								char param_name[17];
-								snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
-
-								int32_t tim_config = 0;
-								param_t handle = param_find(param_name);
-
-								if (param_get(handle, &tim_config) == 0 && tim_config == 400) {
-									tim_config = 50;
-									PX4_INFO("Setting timer %i to %i Hz", timer, (int)tim_config);
-									param_set(handle, &tim_config);
-								}
-							}
-						}
-					}
-
-					// Motors need a minimum value that idles the motor and have a deadzone at the top of the range
-					if (output_function >= (int)OutputFunction::Motor1
-					    && output_function <= (int)OutputFunction::MotorMax) { // Function got set to a motor
-						int32_t val = 1100;
-						PX4_INFO("Setting channel %i minimum to %i", i + 1, (int)val);
-						param_set(_mixing_output.minParamHandle(i), &val);
-						val = 1900;
-						PX4_INFO("Setting channel %i maximum to %i", i + 1, (int)val);
-						param_set(_mixing_output.maxParamHandle(i), &val);
-					}
-				}
-			}
-		}
-	}
 }
 
 int SimplePWM::custom_command(int argc, char *argv[])
 {
+	const char *verb = argv[0];
+
+	if (!strcmp(verb, "test_on")) {
+		PX4_INFO("Publishing ON uorb");
+		struct simple_pwm_s message;
+		memset(&message, 0, sizeof(message));
+		orb_advert_t simple_pwm_pub_fd = orb_advertise(ORB_ID(simple_pwm), &message);
+
+		/* publish message */
+		message.timestamp = hrt_absolute_time();
+		message.frequency = 100;
+		message.duty_cycle = 50;
+		message.enabled = true;
+		orb_publish(ORB_ID(simple_pwm), simple_pwm_pub_fd, &message);
+		return 0;
+	}
+
+	if (!strcmp(verb, "test_off")) {
+		PX4_INFO("Publishing OFF uorb");
+		struct simple_pwm_s message;
+		memset(&message, 0, sizeof(message));
+		orb_advert_t simple_pwm_pub_fd = orb_advertise(ORB_ID(simple_pwm), &message);
+
+		/* publish message */
+		message.timestamp = hrt_absolute_time();
+		message.frequency = 100;
+		message.duty_cycle = 50;
+		message.enabled = false;
+		orb_publish(ORB_ID(simple_pwm), simple_pwm_pub_fd, &message);
+		return 0;
+	}
+
 	return print_usage("unknown command");
 }
 
 int SimplePWM::print_status()
 {
-	perf_print_counter(_cycle_perf);
-	perf_print_counter(_interval_perf);
-	_mixing_output.printStatus();
-
 	if (_pwm_initialized) {
-		for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
-			if (_timer_rates[timer] >= 0) {
-				PX4_INFO_RAW("Timer %i: rate: %3i", timer, _timer_rates[timer]);
-				uint32_t channels = _pwm_mask & up_pwm_servo_get_rate_group(timer);
-
-				if (channels > 0) {
-					PX4_INFO_RAW(" channels: ");
-
-					for (uint32_t channel = 0; channel < _num_outputs; ++channel) {
-						if ((1 << channel) & channels) {
-							PX4_INFO_RAW("%" PRIu32 " ", channel);
-						}
-					}
-				}
-
-				PX4_INFO_RAW("\n");
-			}
-		}
+		PX4_INFO_RAW("Enabled: %d\n", _pwm_enabled);
+		PX4_INFO_RAW("Frequency(Hz): %ld\n", _pwm_frequency);
+		PX4_INFO_RAW("DutyCycle(0-100): %d\n", _pwm_duty_cycle);
 	}
 
 	return 0;
@@ -317,20 +200,20 @@ int SimplePWM::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-This module is responsible for driving the output pins. For boards without a separate IO chip
-(eg. Pixracer), it uses the main channels. On boards with an IO chip (eg. Pixhawk), it uses the AUX channels, and the
-px4io driver is used for main ones.
+This module is responsible for driving the output pins with PWM. It is controller by uORB messages.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("pwm_out", "driver");
+	PRINT_MODULE_USAGE_NAME("simple_pwm", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test_on","test sending an uORB message to start example PWM");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test_off","test sending an uORB message to stop example PWM");
 
 	return 0;
 }
 
-extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
+extern "C" __EXPORT int simple_pwm_main(int argc, char *argv[])
 {
 	return SimplePWM::main(argc, argv);
 }

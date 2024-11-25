@@ -42,17 +42,21 @@
 #include <drivers/drv_pwm_output.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
+
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/simple_pwm.h>
+
+#include <nuttx/timers/pwm.h>
 #include <px4_arch/io_timer.h>
+
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/parameter_update.h>
 
-using namespace time_literals;
 
-class SimplePWM final : public ModuleBase<SimplePWM>
+class SimplePWM : public ModuleBase<SimplePWM>, public px4::ScheduledWorkItem
 {
 public:
 	SimplePWM();
@@ -77,21 +81,25 @@ private:
 	void Run() override;
 
 	void update_params();
-	bool update_pwm_out_state(bool on);
+	bool update_simple_pwm_state(bool on);
+
+	static constexpr unsigned	_current_update_interval{40000}; // 25 Hz
 
 	// MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
-	int _timer_rates[MAX_IO_TIMERS] {};
+	// int _timer_rates[MAX_IO_TIMERS] {};
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	const char*		_pwm_device = "/dev/pwm0";
+	uORB::Subscription	_pwm_sub{ORB_ID(simple_pwm)};
+	int			_pwm_driver_fs{0};
 
-	unsigned	_num_outputs{DIRECT_PWM_OUTPUT_CHANNELS};
+	uint32_t		_pwm_frequency{100};
+	uint8_t			_pwm_duty_cycle{50};
+	bool			_pwm_enabled{false};
 
-	bool		_pwm_on{false};
-	uint32_t	_pwm_mask{0};
-	bool		_pwm_initialized{false};
-	bool		_first_update_cycle{true};
+	bool			_pwm_initialized{false};
 
-	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-	perf_counter_t	_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
+
+	// perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	// perf_counter_t	_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 };
