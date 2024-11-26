@@ -117,6 +117,10 @@ set(msg_files
 	GpsDump.msg
 	GpsInjectData.msg
 	Gripper.msg
+	GsmSerialHttpResponse.msg
+	GsmSerialHttpSend.msg
+	GsmSerialSmsReceive.msg
+	GsmSerialSmsSend.msg
 	HealthReport.msg
 	HeaterStatus.msg
 	HomePosition.msg

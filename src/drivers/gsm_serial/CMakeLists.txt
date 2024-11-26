@@ -32,12 +32,15 @@
 ############################################################################
 
 px4_add_module(
-	MODULE modules__gsm_serial
+	MODULE drivers__gsm_serial
 	MAIN gsm_serial
 	COMPILE_FLAGS
+		-DPARAM_PREFIX="${PARAM_PREFIX}"
 	SRCS
 		GSMSerial.cpp
-		GSMSerial.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		px4_work_queue
+		arch_io_pins
 )

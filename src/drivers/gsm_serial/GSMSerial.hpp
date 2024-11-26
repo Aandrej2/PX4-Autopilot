@@ -33,13 +33,39 @@
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/posix.h>
+#include <drivers/device/device.h>
+
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-// #include <uORB/PublicationMulti.hpp>
-// #include <uORB/Subscription.hpp>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
+
+#include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/gsm_serial_http_response.h>
+#include <uORB/topics/gsm_serial_http_send.h>
+#include <uORB/topics/gsm_serial_sms_receive.h>
+#include <uORB/topics/gsm_serial_sms_send.h>
+
+
+typedef struct {
+	char phone_number[16] = {0};
+	char message_buffer[512] = {0};
+} gsm_serial_sms_t;
+
+typedef enum {
+	GET = 0,
+	POST = 1
+} gsm_serial_http_request_type;
+
+typedef struct {
+	uint8_t type = GET;
+	char url[512] = {0};
+	char data[512] = {0};
+	unsigned int response_code = 0;
+} gsm_serial_http_t;
+
 
 class GSMSerial : public ModuleBase<GSMSerial>, public px4::ScheduledWorkItem
 {
@@ -55,7 +81,8 @@ public:
 
 	enum CommandType {
 		GSM_NONE = 0,
-		GSM_SEND = 1
+		GSM_SEND = 1,
+		GSM_SMS = 2
 	};
 
 	struct Command {
@@ -72,21 +99,36 @@ public:
 	static int print_usage(const char *reason = nullptr);
 
 private:
-	bool init();
+	bool init(char* device, char* pin_code);
 	void Run() override;
 
 	int _fd = 0;
 	int _should_receive = 0;
 
+	char _serial_device[32] = {0};
+	char _sim_pin_code[6] = {0};
+
+	char rxbuffer[1024] = {0};
+	char txbuffer[1024] = {0};
+
 	px4::atomic<Command *>	_pending_cmd{nullptr};
 
-	int RECV(char* buffer, int buff_size);
-
+	int RECV(char* buffer, int buff_size, uint64_t timeout);
 	void SEND(char* buffer, int buff_size);
 
-	// uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
+	bool SendSMS(gsm_serial_sms_t* sms);
 
-	// double _latitude{29.6603018};   // Latitude in degrees
-	// double _longitude{-82.3160500}; // Longitude in degrees
-	// double _altitude{30.1};         // Altitude in meters above MSL, (millimetres)
+	void aaa();
+
+	void publishReceivedSMS(gsm_serial_sms_t* sms);
+	void publishHTTPResponse(gsm_serial_http_t* request, unsigned int response_code);
+
+	bool getSendSMSMessage(gsm_serial_sms_t* sms);
+	bool getSendHTTPRequest(gsm_serial_http_t* request);
+
+	uORB::Publication<gsm_serial_sms_receive_s> _sms_receive_pub{ORB_ID(gsm_serial_sms_receive)};
+	uORB::Publication<gsm_serial_http_response_s> _http_response_pub{ORB_ID(gsm_serial_http_response)};
+
+	uORB::Subscription _sms_send_sub{ORB_ID(gsm_serial_sms_send)};
+	uORB::Subscription _http_send_sub{ORB_ID(gsm_serial_http_send)};
 };
