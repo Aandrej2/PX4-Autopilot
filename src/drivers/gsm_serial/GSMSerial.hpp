@@ -50,17 +50,14 @@
 
 
 typedef struct {
+	char datetime[24] = {0};
 	char phone_number[16] = {0};
 	char message_buffer[512] = {0};
 } gsm_serial_sms_t;
 
-typedef enum {
-	GET = 0,
-	POST = 1
-} gsm_serial_http_request_type;
 
 typedef struct {
-	uint8_t type = GET;
+	uint8_t type = 0; // GET = 0, POST = 1
 	char url[512] = {0};
 	char data[512] = {0};
 	unsigned int response_code = 0;
@@ -104,6 +101,7 @@ private:
 
 	int _fd = 0;
 	int _should_receive = 0;
+	int _should_receive_http = 0;
 
 	char _serial_device[32] = {0};
 	char _sim_pin_code[6] = {0};
@@ -111,14 +109,21 @@ private:
 	char rxbuffer[1024] = {0};
 	char txbuffer[1024] = {0};
 
+	gsm_serial_sms_t _current_sms;
+	gsm_serial_http_t _current_request;
+
 	px4::atomic<Command *>	_pending_cmd{nullptr};
 
 	int RECV(char* buffer, int buff_size, uint64_t timeout);
 	void SEND(char* buffer, int buff_size);
+	int sendCommand(const char* command, uint64_t timeout);
 
 	bool SendSMS(gsm_serial_sms_t* sms);
+	bool SendHTTPRequest(gsm_serial_http_t* request);
 
-	void aaa();
+	void receiveSMSMessages();
+	void receiveHTTPResponse();
+	uint64_t _last_receive_check = hrt_absolute_time(); // us
 
 	void publishReceivedSMS(gsm_serial_sms_t* sms);
 	void publishHTTPResponse(gsm_serial_http_t* request, unsigned int response_code);

@@ -42,23 +42,13 @@ GSMSerial::GSMSerial() :
 {
 }
 
-void GSMSerial::aaa(){
-	PX4_INFO("Publishing SMS Send uorb");
-	struct gsm_serial_sms_send_s message;
-	memset(&message, 0, sizeof(message));
-	orb_advert_t sms_send_fd = orb_advertise(ORB_ID(gsm_serial_sms_send), &message);
-	/* publish message */
-	message.timestamp = hrt_absolute_time();
-	sprintf(message.phone_number, "+421904700827");
-	sprintf(message.message, "Hello Example!");
-
-	orb_publish(ORB_ID(gsm_serial_sms_send), sms_send_fd, &message);
-}
-
 void GSMSerial::publishReceivedSMS(gsm_serial_sms_t* sms)
 {
 	struct gsm_serial_sms_receive_s message;
 	message.timestamp = hrt_absolute_time();
+	memset(message.datetime, 0, 24);
+	memcpy(message.datetime, sms->datetime, 24);
+
 	memset(message.phone_number, 0, 16);
 	memcpy(message.phone_number, sms->phone_number, 16);
 
@@ -93,7 +83,6 @@ bool GSMSerial::getSendSMSMessage(gsm_serial_sms_t* sms)
 
 			memset(sms->message_buffer, 0, 512);
 			memcpy(sms->message_buffer, message.message, 512);
-
 			return true;
 		}
 	}
@@ -142,7 +131,7 @@ int GSMSerial::RECV(char* buffer, int buff_size, uint64_t timeout = 5000)
 			}
 
 			if(len > buff_size) {
-				printf("Buffer overflow\n");
+				PX4_ERR("Buffer overflow\n");
 				return -2;
 			}
 		}
@@ -150,7 +139,7 @@ int GSMSerial::RECV(char* buffer, int buff_size, uint64_t timeout = 5000)
         }
 
 	if(len > 0){
-		printf("Timeout!\n");
+		// PX4_ERR("Timeout!\n");
 	}
 
 	return len;
@@ -158,16 +147,70 @@ int GSMSerial::RECV(char* buffer, int buff_size, uint64_t timeout = 5000)
 
 void GSMSerial::SEND(char* buffer, int buff_size)
 {
-	printf("SEND: %s\n", buffer);
+	// printf("SEND: %s\n", buffer);
 	int ret = write(_fd, buffer, buff_size);
 	if(ret <= 0) {
-		printf("SEND FAILED!\n");
+		// printf("SEND FAILED!\n");
 		return;
 	}
 	_should_receive = 1;
 }
 
-bool GSMSerial::SendSMS(gsm_serial_sms_t* sms) {
+int GSMSerial::sendCommand(const char* command, uint64_t timeout = 5000)
+{
+	memset(txbuffer, 0, 1024);
+	int len = sprintf(txbuffer,"%s\r\n", command);
+	SEND(txbuffer, len);
+
+	memset(rxbuffer, 0, 1024);
+	int res = RECV(rxbuffer, 1024, timeout);
+	if(res <= 0) {
+		// Failed
+		PX4_ERR("Failed to send SMS");
+		return res;
+	}
+	return res;
+}
+
+bool GSMSerial::SendHTTPRequest(gsm_serial_http_t* request)
+{
+	_should_receive_http = 1;
+	sendCommand("AT+CIPSHUT"); 					// expected value OK
+	sendCommand("AT+SAPBR=0,1", 10000); 				// expected value OK
+	sendCommand("AT+SAPBR=3,1,\"Contype\",\"GPRS\"");		// open GPRS context establish GPRS connection
+	sendCommand("AT+SAPBR=3,1,\"APN\",\"internet.mtn\"", 10000);	// change this apn value for the SIM card
+	sendCommand("AT+SAPBR=1,1");					// open GPRS context bearer
+	sendCommand("AT+HTTPINIT");					// initiate HTTP request
+	sendCommand("AT+HTTPPARA=\"CID\",1");				// set parameters for http session
+
+	memset(txbuffer, 0, 1024);
+	int len = sprintf(txbuffer,"AT+HTTPPARA=\"URL\",\"%s\"", request->url);
+	SEND(txbuffer, len);
+
+	int res = -1;
+	if(request->type == 1){ // POST
+			sendCommand("AT+HTTPPARA=\"CONTENT\",\"application/json\"");
+			char buffer[600] = {0};
+			sprintf(buffer, "AT+HTTPDATA=\"%s\",20000", request->data);
+  			sendCommand(buffer);
+			res = sendCommand("AT+HTTPACTION=1", 20000); //send http request to specified URL, POST session start
+	} else if(request->type == 0){ // GET
+			res = sendCommand("AT+HTTPACTION=0", 20000); //send http request to specified URL, GET session start
+	}
+
+	if(res > 0) {
+		return true;
+	}
+
+	_should_receive_http = 0;
+	sendCommand("AT+HTTPTERM");				// close http connection
+	sendCommand("AT+CIPSHUT");				// close or turn off network connection
+	sendCommand("AT+SAPBR=0,1");				// close GPRS context bearer
+	return false;
+}
+
+bool GSMSerial::SendSMS(gsm_serial_sms_t* sms)
+{
 	memset(txbuffer, 0, 1024);
 	int len = sprintf(txbuffer,"AT+CMGS=\"%s\"\r", sms->phone_number);
 	SEND(txbuffer, len);
@@ -195,6 +238,66 @@ bool GSMSerial::SendSMS(gsm_serial_sms_t* sms) {
 	return true;
 }
 
+void GSMSerial::receiveHTTPResponse()
+{
+	int res = sendCommand("AT+HTTPREAD");			// read results of request, normally contains status code 200 if successful
+
+	if(res > 0) {
+	// 	PX4_INFO_RAW("Resp: %s\n", rxbuffer);
+	} else {
+		PX4_ERR("Failed to send HTTP Request\n");
+	}
+
+	sendCommand("AT+HTTPTERM");				// close http connection
+	sendCommand("AT+CIPSHUT");				// close or turn off network connection
+	sendCommand("AT+SAPBR=0,1");				// close GPRS context bearer
+}
+
+void GSMSerial::receiveSMSMessages()
+{
+	// PX4_INFO("Fetching SMS list\n");
+	_last_receive_check = hrt_absolute_time();
+
+	memset(txbuffer, 0, 1024);
+	int len = sprintf(txbuffer,"AT+CMGL=\"REC UNREAD\"\r");
+	// int len = sprintf(txbuffer,"AT+CMGL=\"ALL\"\r");
+	SEND(txbuffer, len);
+
+	memset(rxbuffer, 0, 1024);
+	int res = RECV(rxbuffer, 1024, 10000);
+	if(res <= 0) {
+		// Failed to receive sms
+		PX4_ERR("Failed to fetch SMS list");
+		return;
+	}
+
+	// Found new sms
+	char *result = strstr(rxbuffer, "+CMGL:");
+	if(result) {
+		// PX4_INFO_RAW("GOT SMS MESSAGE!\n");
+		gsm_serial_sms_t sms;
+
+		char *substr = strchr(rxbuffer, ',');
+
+		char *phone = strchr(substr + 1, ',') + 2;
+		char *end = strchr(phone, ',');
+		memcpy(sms.phone_number, phone, end-phone-1);
+		// PX4_INFO_RAW("phone: %s\n", sms.phone_number);
+
+		char* datetime = strchr(strchr(end+1, ','), ',') + 2;
+		end = strchr(datetime, '\n');
+		memcpy(sms.datetime, datetime, end-datetime-2);
+		// PX4_INFO_RAW("datetime: %s\n", sms.datetime);
+
+		char* message = end+1;
+		end = strchr(message, '\n');
+		memcpy(sms.message_buffer, message, end-message-1);
+		// PX4_INFO_RAW("message: %s\n", sms.message_buffer);
+
+		publishReceivedSMS(&sms);
+	}
+}
+
 bool GSMSerial::init(char* device, char* pin_code)
 {
 	memset(_serial_device, 0, 32);
@@ -219,37 +322,21 @@ void GSMSerial::Run()
 			PX4_ERR("Unable to open file %s\n", _serial_device);
 		}
 
-		memset(txbuffer, 0, 1024);
-
 		// AutoSetup Baudrate
-		int len = sprintf(txbuffer,"AT\r");
-		SEND(txbuffer, len);
-
-		int res = RECV(rxbuffer, 1024);
-		if(res > 0) { printf("RECV: %s\n", rxbuffer); }
+		sendCommand("AT", 10000);
 
 		// Set Verbose ERROR Mode
-		memset(txbuffer, 0, 1024);
-		len = sprintf(txbuffer,"AT+CMEE=2\r\n");
-		SEND(txbuffer, len);
-
-		res = RECV(rxbuffer, 1024);
-		if(res > 0) { printf("RECV: %s\n", rxbuffer); }
+		sendCommand("AT+CMEE=2", 10000);
 
 		// Set TEXT Mode
-		memset(txbuffer, 0, 1024);
-		len = sprintf(txbuffer,"AT+CMGF=1\r\n");
-		SEND(txbuffer, len);
-
-		res = RECV(rxbuffer, 1024);
-		if(res > 0) { printf("RECV: %s\n", rxbuffer); }
+		sendCommand("AT+CMGF=1", 10000);
 
 		// Unlock with PIN
 		memset(txbuffer, 0, 1024);
-		len = sprintf(txbuffer,"AT+CPIN=%s\r\n", _sim_pin_code);
+		int len = sprintf(txbuffer,"AT+CPIN=%s\r\n", _sim_pin_code);
 		SEND(txbuffer, len);
 
-		res = RECV(rxbuffer, 1024);
+		int res = RECV(rxbuffer, 1024, 20000);
 		if(res > 0) { printf("RECV: %s\n", rxbuffer); }
 	}
 
@@ -274,7 +361,7 @@ void GSMSerial::Run()
 			SEND(current_cmd->buffer, current_cmd->buffer_size);
 			break;
 		case CommandType::GSM_SMS:
-			aaa();
+			// example();
 			break;
 		case CommandType::GSM_NONE:
 		default:
@@ -289,16 +376,36 @@ void GSMSerial::Run()
 		memset(rxbuffer, 0, 1024);
 		int res = RECV(rxbuffer, 1024);
 		if(res > 0) {
-			printf("RECV: %s\n", rxbuffer);
+		// 	printf("RECV: %s\n", rxbuffer);
 		}
 		_should_receive = 0;
 	}
 
+	// PX4_INFO("LOOP!\n");
 
-	gsm_serial_sms_t sms;
-	if(getSendSMSMessage(&sms)) {
-		if(SendSMS(&sms)) {
-			PX4_INFO("Successfully sent SMS!\n");
+	if(_should_receive_http) {
+		receiveHTTPResponse();
+		_should_receive_http = 0;
+	}
+
+
+	if(getSendSMSMessage(&_current_sms)) {
+		if(SendSMS(&_current_sms)) {
+			// PX4_INFO("Successfully sent SMS!\n");
+		}
+	}
+
+	if(getSendHTTPRequest(&_current_request)) {
+		if(SendHTTPRequest(&_current_request)) {
+			// PX4_INFO("Successfully sent HTTP Request!\n");
+		}
+	}
+
+
+	// Call every 60 seconds except when doing http request
+	if(!_should_receive_http) {
+		if(hrt_absolute_time() - _last_receive_check > 60 * 1000 * 1000) {
+			receiveSMSMessages();
 		}
 	}
 
@@ -404,8 +511,7 @@ int GSMSerial::print_usage(const char *reason)
 
 	PRINT_MODULE_USAGE_NAME("gsm_serial", "driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "start GSM serial drvier with specified serial port and SIM pin code (ex. start /dev/ttyS1 1234)");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("send", "send AT command directly (ex. AT+xxx)");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("sms", "send example SMS Send uORB");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("send", "send AT command directly (ex. AT+xxx), use backslash before spaces");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	return 0;
 }
