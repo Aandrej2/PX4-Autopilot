@@ -337,10 +337,16 @@ void GSMSerial::Run()
 		SEND(txbuffer, len);
 
 		int res = RECV(rxbuffer, 1024, 20000);
-		if(res > 0) { printf("RECV: %s\n", rxbuffer); }
+		if(res > 0) {
+			// printf("RECV: %s\n", rxbuffer);
+		} else {
+			PX4_ERR("PIN Code Wrong! (Try to restart Device...)\n");
+			close(_fd);
+			_fd = 0;
+		}
 	}
 
-	if (should_exit()) {
+	if (should_exit() || _fd <= 0) {
 
 		if(_fd) {
 			close(_fd);
